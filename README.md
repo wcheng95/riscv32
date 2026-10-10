@@ -6,7 +6,7 @@ The goal is architectural understanding: RV32I programming model, instruction en
 
 ## Status
 
-Planning. No CPU RTL, testbench or passing simulations are committed yet.
+Reference RTL and ISC license imported; testbench and passing simulations are not yet implemented.
 
 ## Design Decisions
 
@@ -63,7 +63,7 @@ riscv32/
 └── logs/                 # ignored
 ```
 
-These are targets for the implementation, not files already present.
+The upstream RTL is now present. Other entries are the planned implementation layout.
 
 ## Roadmap (Provisional)
 
@@ -101,3 +101,12 @@ Before adding machinery, ask: Which PicoRV32 or RISC-V question does it answer? 
 
 - [PicoRV32](https://github.com/YosysHQ/picorv32) by Claire Xenia Wolf / YosysHQ — the reference CPU RTL, ISC license.
 - [cisc68k](https://github.com/wcheng95/cisc68k) — documentation and experimental lab conventions.
+- ChatGPT by OpenAI — study partner for architecture planning, PicoRV32 experiments, RTL/testbench design, debugging and documentation.
+
+## Upstream RTL Provenance
+
+- Source: https://github.com/YosysHQ/picorv32
+- Pinned upstream commit: `ef203c2b0a3fb793280f5114941416c425c5b461`
+- Imported paths: `picorv32/picorv32.v` and `picorv32/COPYING`
+- The RTL is copied verbatim; configuration and simulation belong outside this file.
+- Verify exact upstream match using `git show ef203c2b0a3fb793280f5114941416c425c5b461:picorv32.v` in the upstream clone and `cmp` against the local file.
