@@ -6,7 +6,7 @@ The goal is architectural understanding: RV32I programming model, instruction en
 
 ## Status
 
-Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS environment instructions are committed; Lab00 passed on Mac mini (Icarus 13.0, store result 12, 27 testbench cycles).
+Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS environment instructions are committed; Lab00 passed on Mac mini (Icarus 13.0, store result 12, 27 testbench cycles). Lab01 register/PC experiment is implemented; Mac mini validation pending.
 
 ## Design Decisions
 
@@ -70,7 +70,7 @@ The upstream RTL and first testbench are present. Other entries are the planned 
 | Lab | Subject | Specific observation |
 | --- | --- | --- |
 | 00 | Minimal simulation | Reset, fetch, self-check, monitor write and waveform |
-| 01 | Register model and PC | x0, x1–x31, reset entry, register arithmetic |
+| 01 | Register model and PC | x0, x1–x31, reset entry, register arithmetic (implemented, validation pending) |
 | 02 | Instruction encoding | R/I/S/B/U/J formats, immediate decoding |
 | 03 | ALU and shifts | Operations, signedness, shift timing |
 | 04 | Loads and stores | Widths, sign extension, write strobes, alignment |
