@@ -16,7 +16,7 @@ park:
     jal x0, park
 ```
 
-The program words are initialized in `tbench/riscv32_tb.v`, not yet compiled using the GNU toolchain.
+The source is `labs/lab00/lab00.S`. The shared linker script `labs/common/link.ld` places it at PC=0. GNU GCC/binutils produce an ELF, raw binary and `build/lab00.hex`; the testbench loads that hex file using `$readmemh`.
 
 ## Memory
 
@@ -30,8 +30,9 @@ The program words are initialized in `tbench/riscv32_tb.v`, not yet compiled usi
 ## Build and run
 
 ```sh
-make test
-make wave
+make test LAB=lab00
+make disasm LAB=lab00
+make wave LAB=lab00
 ```
 
 Expected decisive lines:
@@ -55,7 +56,7 @@ The cycle count is measured by the testbench; it is not an ISA-defined instructi
 4. Which cycle asserts `mem_ready`?
 5. Which details are ISA rules and which are PicoRV32 or testbench choices?
 
-## Observed Mac mini Result (2026-10-10)
+## Historical Mac mini Result (2026-10-10, before assembly-image refactor)
 
 Validated on macOS with Icarus Verilog 13.0, RISC-V GCC 16.2.0 and Binutils 2.47.20260726:
 
@@ -67,8 +68,8 @@ PASS: Lab00 result=12 cycles=27
 tbench/riscv32_tb.v:90: $finish called at 375000 (1ps)
 ```
 
-The testbench passed on the user's Mac mini. Waveform inspection remains optional follow-up; the counted 27 cycles are not the CPI of an individual instruction.
+The *original hardcoded-opcode* version passed on the Mac mini. The testbench now loads a compiled assembly image with the same six instructions. A new Mac mini run is required to verify the revised build. The counted 27 cycles are not the CPI of an individual instruction.
 
 ## Completion
 
-**PASS — functional sanity check complete.** CPU simulation compiled and the self-checking store completed correctly. VCD capture/inspection has not yet been reported.
+**Previously PASS; updated assembly-based flow pending revalidation.** No change to the expected store (12 at 0x1000); new toolchain flow must be checked with `make clean && make test LAB=lab00`.
