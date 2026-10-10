@@ -1,10 +1,7 @@
 // Passive PicoRV32 native-memory handshake logger.
 // Logs completed transactions only; never drives the bus.
 `timescale 1ns/1ps
-module bus_trace #(
-    parameter FILE_NAME = "build/bus.trace",
-    parameter integer LAB_ID = 0
-) (
+module bus_trace (
     input clk,
     input resetn,
     input [31:0] cycle,
@@ -17,12 +14,10 @@ module bus_trace #(
     input [31:0] mem_rdata
 );
     integer fd = 0;
-    integer selected_lab = -1;
 
     initial begin
-        if ($test$plusargs("trace") &&
-            $value$plusargs("lab=%d", selected_lab) && selected_lab == LAB_ID) begin
-            fd = $fopen(FILE_NAME, "w");
+        if ($test$plusargs("trace")) begin
+            fd = $fopen("build/bus.trace", "w");
             if (fd == 0) begin
                 $display("FAIL: unable to open trace file %s", FILE_NAME);
                 $fatal(1);
