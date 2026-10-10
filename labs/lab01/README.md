@@ -95,3 +95,7 @@ GCC 16.2.0 and Icarus Verilog 13.0 were previously verified on this Mac mini. Fu
 ## Completion
 
 **PASS — functional verification complete** on Mac mini. Waveform inspection not yet reported.
+
+## Shared Testbench Update
+
+The simulation now uses `tbench/riscv32_tb.v` together with `tbench/ram.v` and `tbench/bus_trace.v`. The original per-lab passing result above predates this refactor; the common simulation machine must be revalidated with `make test LAB=lab01`.
