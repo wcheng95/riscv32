@@ -20,10 +20,10 @@ TB = tbench/lab01_tb.v
 endif
 
 SIM = build/$(LAB).vvp
-SRC = $(TB) picorv32/picorv32.v
+SRC = $(TB) tbench/bus_trace.v picorv32/picorv32.v
 ASFLAGS = -march=rv32i -mabi=ilp32 -mno-relax -nostdlib -nostartfiles -Wl,-T,labs/common/link.ld -Wl,--build-id=none
 
-.PHONY: all test wave disasm clean toolchain-check test-all
+.PHONY: all test trace wave disasm clean toolchain-check test-all
 all: test
 
 build:
@@ -46,6 +46,10 @@ $(SIM): build/$(LAB).hex $(SRC) | build
 
 test: $(SIM)
 	$(VVP) $(SIM)
+
+trace: $(SIM)
+	$(VVP) $(SIM) +trace
+	@echo "Trace: build/$(LAB).trace"
 
 test-all:
 	$(MAKE) test LAB=lab00
