@@ -61,7 +61,7 @@ The testbench checks the first nine sequential instruction fetch addresses, ever
 
 ```sh
 make trace LAB=lab01
-cat build/lab01.trace
+cat build/bus.trace
 ```
 
 See [trace format](../../docs/trace.md). Each row represents one completed native-memory transfer; the trace is separate from VCD waveform output.
