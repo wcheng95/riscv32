@@ -1,27 +1,20 @@
-// Lab00: minimal, independent PicoRV32 native-bus testbench
+// Shared PicoRV32 simulation machine for all early RV32I labs.
 `timescale 1ns/1ps
 module riscv32_tb;
-    reg clk = 0;
-    reg resetn = 0;
+    reg clk = 0, resetn = 0;
     always #5 clk = ~clk;
-
-    wire trap, mem_valid, mem_instr;
-    reg mem_ready = 0;
-    wire [31:0] mem_addr, mem_wdata;
+    wire trap, mem_valid, mem_instr, mem_ready;
+    wire [31:0] mem_addr, mem_wdata, mem_rdata;
     wire [3:0] mem_wstrb;
-    reg [31:0] mem_rdata = 0;
-    reg [31:0] memory [0:2047]; // 8 KiB; program at 0, data at 0x1000
+    integer lab = -1, cycles = 0, stores = 0, fetches = 0;
     integer i;
-    integer cycles = 0;
-    reg passed = 0;
+    reg completed = 0;
+    reg [31:0] expected [0:3];
+    reg [31:0] expected_addr;
 
     picorv32 #(
-        .COMPRESSED_ISA(0),
-        .ENABLE_MUL(0),
-        .ENABLE_DIV(0),
-        .ENABLE_PCPI(0),
-        .ENABLE_IRQ(0),
-        .PROGADDR_RESET(32'h00000000)
+        .COMPRESSED_ISA(0), .ENABLE_MUL(0), .ENABLE_DIV(0),
+        .ENABLE_PCPI(0), .ENABLE_IRQ(0), .PROGADDR_RESET(32'h0)
     ) cpu (
         .clk(clk), .resetn(resetn), .trap(trap),
         .mem_valid(mem_valid), .mem_instr(mem_instr),
@@ -31,71 +24,96 @@ module riscv32_tb;
         .pcpi_ready(1'b0), .irq(32'b0)
     );
 
-    initial begin
-        for (i = 0; i < 2048; i = i + 1) memory[i] = 32'h00000013; // NOP
-        // Load the assembled Lab00 instruction image, not hand-written opcodes.
-        $readmemh("build/lab00.hex", memory, 0, 5);
-        memory[1024] = 32'h00000000;
-        repeat (10) @(negedge clk);
-        resetn = 1;
-    end
+    ram main_ram (
+        .clk(clk), .resetn(resetn), .mem_valid(mem_valid),
+        .mem_addr(mem_addr), .mem_wdata(mem_wdata), .mem_wstrb(mem_wstrb),
+        .mem_ready(mem_ready), .mem_rdata(mem_rdata)
+    );
 
-    // Optional passive, per-lab trace; no effect on memory timing.
-    bus_trace #(.FILE_NAME("build/lab00.trace")) trace_monitor (
-        .clk(clk), .resetn(resetn), .cycle(cycles),
+    // The active logger is selected by lab, preserving build/labNN.trace.
+    bus_trace #(.FILE_NAME("build/lab00.trace")) trace00 (
+        .clk(clk), .resetn(resetn && lab == 0), .cycle(cycles),
+        .mem_valid(mem_valid), .mem_ready(mem_ready), .mem_instr(mem_instr),
+        .mem_addr(mem_addr), .mem_wdata(mem_wdata),
+        .mem_wstrb(mem_wstrb), .mem_rdata(mem_rdata)
+    );
+    bus_trace #(.FILE_NAME("build/lab01.trace")) trace01 (
+        .clk(clk), .resetn(resetn && lab == 1), .cycle(cycles),
         .mem_valid(mem_valid), .mem_ready(mem_ready), .mem_instr(mem_instr),
         .mem_addr(mem_addr), .mem_wdata(mem_wdata),
         .mem_wstrb(mem_wstrb), .mem_rdata(mem_rdata)
     );
 
     initial begin
+        if (!$value$plusargs("lab=%d", lab) || (lab != 0 && lab != 1))
+            $fatal(1, "Use +lab=0 or +lab=1");
+        if (lab == 0) begin
+            expected[0] = 12;
+        end else begin
+            expected[0] = 0;
+            expected[1] = 32'hfffffffd;
+            expected[2] = 2;
+            expected[3] = 5;
+        end
+        repeat (10) @(negedge clk);
+        resetn = 1;
+    end
+
+    initial begin
         if ($test$plusargs("vcd")) begin
-            $dumpfile("build/lab00.vcd");
+            if (lab == 0) $dumpfile("build/lab00.vcd");
+            else $dumpfile("build/lab01.vcd");
             $dumpvars(0, riscv32_tb);
         end
     end
 
-    // One-cycle registered memory response, with byte enables.
+    // Lab-specific checks observe only completed bus transactions.
     always @(posedge clk) begin
-        mem_ready <= 0;
-        if (resetn && mem_valid && !mem_ready && mem_addr < 8192) begin
-            mem_ready <= 1;
-            mem_rdata <= memory[mem_addr >> 2];
-            if (mem_wstrb[0]) memory[mem_addr >> 2][7:0]   <= mem_wdata[7:0];
-            if (mem_wstrb[1]) memory[mem_addr >> 2][15:8]  <= mem_wdata[15:8];
-            if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
-            if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
-        end
-        if (resetn && mem_valid && mem_ready && |mem_wstrb) begin
-            $display("STORE addr=%08x value=%08x wstrb=%b", mem_addr, mem_wdata, mem_wstrb);
-            if (mem_addr !== 32'h1000 || mem_wstrb !== 4'b1111 ||
-                mem_wdata !== 32'd12) begin
-                $display("FAIL: unexpected store");
-                $fatal(1);
+        if (resetn && mem_valid && mem_ready) begin
+            if (mem_instr) begin
+                if (lab == 1 && fetches < 9 && mem_addr !== fetches * 4)
+                    $fatal(1, "FAIL: expected PC %08x got %08x", fetches * 4, mem_addr);
+                fetches <= fetches + 1;
             end
-            passed <= 1;
+            if (|mem_wstrb) begin
+                expected_addr = 32'h1000 + stores * 4;
+                if ((lab == 0 && stores >= 1) ||
+                    (lab == 1 && stores >= 4) ||
+                    mem_addr !== expected_addr ||
+                    mem_wstrb !== 4'b1111 ||
+                    mem_wdata !== expected[stores])
+                    $fatal(1, "FAIL: store #%0d addr=%08x data=%08x strb=%b",
+                           stores, mem_addr, mem_wdata, mem_wstrb);
+                if (lab == 0)
+                    $display("STORE addr=%08x value=%08x wstrb=%b",
+                             mem_addr, mem_wdata, mem_wstrb);
+                else
+                    $display("STORE %0d addr=%08x data=%08x", stores, mem_addr, mem_wdata);
+                if ((lab == 0 && stores == 0) ||
+                    (lab == 1 && stores == 3)) completed <= 1;
+                stores <= stores + 1;
+            end
         end
     end
 
     always @(posedge clk) begin
         if (resetn) begin
             cycles <= cycles + 1;
-            if (trap) begin
-                $display("FAIL: CPU trap");
-                $fatal(1);
-            end
-            if (passed) begin
-                if (memory[1024] !== 32'd12) begin
-                    $display("FAIL: RAM did not contain 12");
-                    $fatal(1);
-                end
-                $display("PASS: Lab00 result=12 cycles=%0d", cycles);
+            if (trap) $fatal(1, "FAIL: unexpected CPU trap");
+            if (completed) begin
+                for (i=0; i<(lab == 0 ? 1 : 4); i=i+1)
+                    if (main_ram.memory[1024+i] !== expected[i])
+                        $fatal(1, "FAIL: RAM[%0d] got %08x expected %08x",
+                               i, main_ram.memory[1024+i], expected[i]);
+                if (lab == 1 && fetches < 9)
+                    $fatal(1, "FAIL: too few instruction fetches (%0d)", fetches);
+                if (lab == 0)
+                    $display("PASS: Lab00 result=12 cycles=%0d", cycles);
+                else
+                    $display("PASS: Lab01 x0=0 x2=-3 x31=2 x1=5 cycles=%0d", cycles);
                 $finish;
             end
-            if (cycles > 500) begin
-                $display("FAIL: timeout");
-                $fatal(1);
-            end
+            if (cycles > 500) $fatal(1, "FAIL: timeout");
         end
     end
 endmodule
