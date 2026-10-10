@@ -21,37 +21,38 @@ endif
 
 SIM = build/$(LAB).vvp
 SRC = $(TB) picorv32/picorv32.v
-LAB01_FLAGS = -march=rv32i -mabi=ilp32 -mno-relax -nostdlib -nostartfiles -Wl,-Ttext=0 -Wl,-e,_start -Wl,--build-id=none
+ASFLAGS = -march=rv32i -mabi=ilp32 -mno-relax -nostdlib -nostartfiles -Wl,-T,labs/common/link.ld -Wl,--build-id=none
 
-.PHONY: all test wave disasm clean toolchain-check
+.PHONY: all test wave disasm clean toolchain-check test-all
 all: test
 
 build:
 	mkdir -p build
 
-build/lab01.elf: labs/lab01/lab01.S | build
-	$(CC) $(LAB01_FLAGS) -o $@ $<
+build/%.elf: labs/%/%.S labs/common/link.ld | build
+	$(CC) $(ASFLAGS) -o $@ $<
 
-build/lab01.bin: build/lab01.elf
+build/%.bin: build/%.elf
 	$(OBJCOPY) -O binary -j .text $< $@
 
-build/lab01.hex: build/lab01.bin tools/bin2hex.py
+build/%.hex: build/%.bin tools/bin2hex.py
 	$(PYTHON) tools/bin2hex.py $< $@
 
-ifeq ($(LAB),lab01)
-$(SIM): build/lab01.hex
-endif
-$(SIM): $(SRC) | build
+$(SIM): build/$(LAB).hex $(SRC) | build
 	$(IVERILOG) -g2012 -s $(TOP) -o $@ $(SRC)
 
 test: $(SIM)
 	$(VVP) $(SIM)
 
+test-all:
+	$(MAKE) test LAB=lab00
+	$(MAKE) test LAB=lab01
+
 wave: $(SIM)
 	$(VVP) $(SIM) +vcd
 	@echo "VCD: build/$(LAB).vcd"
 
-disasm: build/lab01.elf
+disasm: build/$(LAB).elf
 	$(OBJDUMP) -d $<
 
 toolchain-check:
