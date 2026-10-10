@@ -55,6 +55,20 @@ The cycle count is measured by the testbench; it is not an ISA-defined instructi
 4. Which cycle asserts `mem_ready`?
 5. Which details are ISA rules and which are PicoRV32 or testbench choices?
 
+## Observed Mac mini Result (2026-10-10)
+
+Validated on macOS with Icarus Verilog 13.0, RISC-V GCC 16.2.0 and Binutils 2.47.20260726:
+
+```text
+iverilog -g2012 -s riscv32_tb -o build/lab00.vvp tbench/riscv32_tb.v picorv32/picorv32.v
+vvp build/lab00.vvp
+STORE addr=00001000 value=0000000c wstrb=1111
+PASS: Lab00 result=12 cycles=27
+tbench/riscv32_tb.v:90: $finish called at 375000 (1ps)
+```
+
+The testbench passed on the user's Mac mini. Waveform inspection remains optional follow-up; the counted 27 cycles are not the CPI of an individual instruction.
+
 ## Completion
 
-Pending successful local `make test` on the Mac mini, review of the waveform, and recording the observed cycle count.
+**PASS — functional sanity check complete.** CPU simulation compiled and the self-checking store completed correctly. VCD capture/inspection has not yet been reported.
