@@ -31,13 +31,13 @@ module riscv32_tb;
     );
 
     // The active logger is selected by lab, preserving build/labNN.trace.
-    bus_trace #(.FILE_NAME("build/lab00.trace")) trace00 (
+    bus_trace #(.FILE_NAME("build/lab00.trace"), .LAB_ID(0)) trace00 (
         .clk(clk), .resetn(resetn && lab == 0), .cycle(cycles),
         .mem_valid(mem_valid), .mem_ready(mem_ready), .mem_instr(mem_instr),
         .mem_addr(mem_addr), .mem_wdata(mem_wdata),
         .mem_wstrb(mem_wstrb), .mem_rdata(mem_rdata)
     );
-    bus_trace #(.FILE_NAME("build/lab01.trace")) trace01 (
+    bus_trace #(.FILE_NAME("build/lab01.trace"), .LAB_ID(1)) trace01 (
         .clk(clk), .resetn(resetn && lab == 1), .cycle(cycles),
         .mem_valid(mem_valid), .mem_ready(mem_ready), .mem_instr(mem_instr),
         .mem_addr(mem_addr), .mem_wdata(mem_wdata),
