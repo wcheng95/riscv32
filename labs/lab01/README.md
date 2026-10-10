@@ -55,7 +55,7 @@ Expected last line:
 PASS: Lab01 x0=0 x2=-3 x31=2 x1=5 cycles=...
 ```
 
-The testbench checks the first nine sequential instruction fetch addresses, every word store, and final RAM contents. A trap or timeout fails the test. Actual measured cycles are recorded after running on Mac mini.
+The testbench checks the first nine sequential instruction fetch addresses, every word store, and final RAM contents. A trap or timeout fails the test. Observed on Mac mini: 52 testbench cycles.
 
 ## Waveform inspection
 
@@ -71,6 +71,18 @@ Observe how instruction fetches progress at PC 0, 4, 8, ... 32 while stores visi
 4. [PICO] Why can instruction fetch take multiple cycles despite a 4-byte PC step?
 5. [CONV] Why does our testbench use memory stores rather than inspecting PicoRV32's register-file implementation directly?
 
+## Observed Mac mini result (2026-10-10)
+
+```text
+STORE 0 addr=00001000 data=00000000
+STORE 1 addr=00001004 data=fffffffd
+STORE 2 addr=00001008 data=00000002
+STORE 3 addr=0000100c data=00000005
+PASS: Lab01 x0=0 x2=-3 x31=2 x1=5 cycles=52
+```
+
+GCC 16.2.0 and Icarus Verilog 13.0 were previously verified on this Mac mini. Functional assertions passed with the shared linker/assembly build. `make wave` and disassembly review remain optional inspection steps.
+
 ## Completion
 
-Pending Mac mini execution and waveform review. Lab00 remains unchanged and independently runnable.
+**PASS — functional verification complete** on Mac mini. Waveform inspection not yet reported.
