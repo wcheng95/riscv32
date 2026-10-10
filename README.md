@@ -30,7 +30,7 @@ Follow `cisc68k` in layout and method:
 - `docs/references.md`: reference design, ISA and toolchain.
 - `labs/labNN/README.md`: goal, program, expected output, build/run, waveform or disassembly inspection, questions and completion evidence.
 - `labs/common/`: minimal shared startup and linker files once assembly/C labs require them.
-- `tbench/`: testbench and only those memory/monitor components demanded by an experiment; shared bus trace in `tbench/bus_trace.v`.
+- `tbench/`: common simulation machine, shared RAM and passive trace; add peripherals only when an experiment requires them.
 - `logs/` and `build/`: generated artifacts, not committed.
 
 Distinguish `[ISA]` RISC-V-defined behavior, `[PICO]` PicoRV32 implementation details, `[ASM]` assembler syntax, `[LD]` linker behavior, and `[CONV]` project conventions.
@@ -46,7 +46,7 @@ riscv32/
 ├── tbench/
 │   ├── riscv32_tb.v
 │   ├── ram.v
-│   └── monitor.v
+│   └── bus_trace.v
 ├── labs/
 │   ├── common/
 │   │   ├── README.md
@@ -64,7 +64,7 @@ riscv32/
 └── logs/                 # ignored
 ```
 
-The upstream RTL, both lab testbenches and first two assembly labs are present. Other entries are the planned layout. A shared `start.S` will be introduced when a lab actually needs common startup.
+The upstream RTL, common testbench, shared RAM/trace modules and first two assembly labs are present. Other entries are the planned layout. A shared `start.S` will be introduced when a lab actually needs common startup.
 
 ## Roadmap (Provisional)
 
@@ -119,3 +119,7 @@ Before adding machinery, ask: Which PicoRV32 or RISC-V question does it answer? 
 - Imported paths: `picorv32/picorv32.v` and `picorv32/COPYING`
 - The RTL is copied verbatim; configuration and simulation belong outside this file.
 - Verify exact upstream match using `git show ef203c2b0a3fb793280f5114941416c425c5b461:picorv32.v` in the upstream clone and `cmp` against the local file.
+
+## Shared Simulation Machine
+
+Lab00 and Lab01 use one top-level `tbench/riscv32_tb.v`, shared `ram.v`, and passive `bus_trace.v`. The Makefile selects a lab using VVP plusargs `+lab=<number> +hex=<image> +words=<count>`. New peripherals should be separate modules, added only for labs that need them. The original per-lab Lab01 testbench was retired. Refactored setup awaits Mac mini validation via `make clean && make test-all`.
