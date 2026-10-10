@@ -5,14 +5,14 @@ The shared passive monitor `tbench/bus_trace.v` records completed PicoRV32 nativ
 ## Usage
 
 ```sh
-make trace LAB=lab00
+make test LAB=lab00
 cat build/lab00.trace
 
-make trace LAB=lab01
+make test LAB=lab01
 cat build/lab01.trace
 ```
 
-The normal `make test LAB=...` remains quiet. Use `make wave LAB=...` separately for a full VCD, or run `vvp build/lab01.vvp +trace +vcd` to generate both.
+Human-readable tracing is **on by default** for `make`, `make test`, `make test-all`, `make trace` and `make wave`. The trace is written to a file, not dumped to the terminal. `make wave LAB=...` generates both VCD and trace. Direct VVP execution without `+trace` still disables the optional logger.
 
 ## Fields
 
