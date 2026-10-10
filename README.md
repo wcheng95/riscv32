@@ -30,7 +30,7 @@ Follow `cisc68k` in layout and method:
 - `docs/references.md`: reference design, ISA and toolchain.
 - `labs/labNN/README.md`: goal, program, expected output, build/run, waveform or disassembly inspection, questions and completion evidence.
 - `labs/common/`: minimal shared startup and linker files once assembly/C labs require them.
-- `tbench/`: testbench and only those memory/monitor components demanded by an experiment; optional shared bus trace in `tbench/bus_trace.v`.
+- `tbench/`: testbench and only those memory/monitor components demanded by an experiment; shared bus trace in `tbench/bus_trace.v`.
 - `logs/` and `build/`: generated artifacts, not committed.
 
 Distinguish `[ISA]` RISC-V-defined behavior, `[PICO]` PicoRV32 implementation details, `[ASM]` assembler syntax, `[LD]` linker behavior, and `[CONV]` project conventions.
@@ -100,7 +100,7 @@ The learning sequence is intentionally not identical to `cisc68k`. A comparison 
 
 ## Trace
 
-`make trace LAB=lab00` or `make trace LAB=lab01` produces `build/<lab>.trace` with completed IFETCH, READ and WRITE bus transactions. Trace generation is opt-in and does not change functional tests. Mac mini trace output awaits validation.
+`make trace LAB=lab00` or `make trace LAB=lab01` produces `build/<lab>.trace` with completed IFETCH, READ and WRITE bus transactions. Trace generation is on by default for `make`, `make test`, `make test-all` and `make wave`; it does not change functional tests. Mac mini trace output awaits validation.
 
 ## Scope Rule
 
