@@ -29,7 +29,10 @@ all: test
 build:
 	mkdir -p build
 
-build/%.elf: labs/%/%.S labs/common/link.ld | build
+build/lab00.elf: labs/lab00/lab00.S labs/common/link.ld | build
+	$(CC) $(ASFLAGS) -o $@ $<
+
+build/lab01.elf: labs/lab01/lab01.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
 build/%.bin: build/%.elf
