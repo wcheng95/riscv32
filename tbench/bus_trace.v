@@ -19,7 +19,7 @@ module bus_trace (
         if ($test$plusargs("trace")) begin
             fd = $fopen("build/bus.trace", "w");
             if (fd == 0) begin
-                $display("FAIL: unable to open trace file %s", FILE_NAME);
+                $display("FAIL: unable to open trace file build/bus.trace");
                 $fatal(1);
             end
             $fdisplay(fd, "# PicoRV32 native memory transactions (completed handshakes)");
