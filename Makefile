@@ -11,16 +11,15 @@ ifeq ($(filter $(LAB),lab00 lab01),)
 $(error Unsupported LAB=$(LAB); choose lab00 or lab01)
 endif
 
-ifeq ($(LAB),lab00)
 TOP = riscv32_tb
-TB = tbench/riscv32_tb.v
-else
-TOP = lab01_tb
-TB = tbench/lab01_tb.v
-endif
-
 SIM = build/$(LAB).vvp
-SRC = $(TB) tbench/bus_trace.v picorv32/picorv32.v
+SRC = tbench/riscv32_tb.v tbench/ram.v tbench/bus_trace.v picorv32/picorv32.v
+LAB_ID = $(patsubst lab%,%,$(LAB))
+WORDS_lab00 = 6
+WORDS_lab01 = 10
+WORDS = $(WORDS_$(LAB))
+RUN_ARGS = +lab=$(LAB_ID) +hex=build/$(LAB).hex +words=$(WORDS)
+
 ASFLAGS = -march=rv32i -mabi=ilp32 -mno-relax -nostdlib -nostartfiles -Wl,-T,labs/common/link.ld -Wl,--build-id=none
 
 .PHONY: all test trace wave disasm clean toolchain-check test-all
@@ -45,7 +44,7 @@ $(SIM): build/$(LAB).hex $(SRC) | build
 	$(IVERILOG) -g2012 -s $(TOP) -o $@ $(SRC)
 
 test: $(SIM)
-	$(VVP) $(SIM) +trace
+	$(VVP) $(SIM) $(RUN_ARGS) +trace
 	@echo "Trace: build/$(LAB).trace"
 
 trace: $(SIM)
@@ -57,7 +56,7 @@ test-all:
 	$(MAKE) test LAB=lab01
 
 wave: $(SIM)
-	$(VVP) $(SIM) +trace +vcd
+	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
 	@echo "VCD: build/$(LAB).vcd"
 
 disasm: build/$(LAB).elf
