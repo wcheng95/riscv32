@@ -6,7 +6,7 @@ The goal is architectural understanding: RV32I programming model, instruction en
 
 ## Status
 
-Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS environment instructions are committed; Lab00 passed on Mac mini (Icarus 13.0, store result 12, 27 testbench cycles). Lab01 register/PC experiment is implemented; Mac mini validation pending.
+Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS environment instructions are committed; Lab00 originally passed on Mac mini (Icarus 13.0, store result 12, 27 testbench cycles). Its build is now assembly-based and awaits revalidation. Lab01 is implemented and also awaits Mac mini validation.
 
 ## Design Decisions
 
@@ -49,10 +49,10 @@ riscv32/
 ├── labs/
 │   ├── common/
 │   │   ├── README.md
-│   │   ├── start.S
 │   │   └── link.ld
 │   ├── lab00/
-│   │   └── README.md
+│   │   ├── README.md
+│   │   └── lab00.S
 │   └── ...
 ├── docs/
 │   ├── mission-scope.md
@@ -63,7 +63,7 @@ riscv32/
 └── logs/                 # ignored
 ```
 
-The upstream RTL and first testbench are present. Other entries are the planned layout.
+The upstream RTL, both lab testbenches and first two assembly labs are present. Other entries are the planned layout. A shared `start.S` will be introduced when a lab actually needs common startup.
 
 ## Roadmap (Provisional)
 
@@ -92,7 +92,7 @@ The learning sequence is intentionally not identical to `cisc68k`. A comparison 
 
 - Pin and copy unmodified upstream PicoRV32 RTL and license.
 - Create an independent minimal testbench and simple native-bus memory model. (Committed)
-- Execute a short machine-code program, even without a RISC-V compiler installed. (PASS on Mac mini)
+- Execute a short machine-code program. (Historical PASS with hardcoded opcodes; assembly-based flow pending validation)
 - Verify a store to an address separate from program code, then print an explicit `PASS` or `FAIL`.
 - Provide a simulation timeout and VCD output.
 - Record the exact commands and observed results in `labs/lab00/README.md` once implemented.
