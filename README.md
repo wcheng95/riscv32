@@ -6,7 +6,7 @@ The goal is architectural understanding: RV32I programming model, instruction en
 
 ## Status
 
-Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS environment instructions are committed; simulation on Mac mini is pending validation.
+Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS environment instructions are committed; Lab00 passed on Mac mini (Icarus 13.0, store result 12, 27 testbench cycles).
 
 ## Design Decisions
 
@@ -16,7 +16,7 @@ Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS envi
 - Develop our own testbench, monitor, self-checking tests and labs.
 - Icarus Verilog initially; Verilator and Surfer when useful.
 - No FPGA, complete SoC, AXI, Wishbone or operating system.
-- Initially disable RV32M, RV32C, IRQ and PCPI; optional features may be enabled in later targeted experiments.
+- Keep RV32M, RV32C, IRQ and PCPI disabled in Lab00. Dedicated later labs will enable **interrupts and PCPI**, without modifying upstream RTL; RV32M/RV32C remain optional.
 - Treat peripheral models as a means to observe the CPU interface, not as standalone projects.
 
 ## Documentation and Lab Conventions
@@ -79,8 +79,12 @@ The upstream RTL and first testbench are present. Other entries are the planned 
 | 07 | State machine and CPI | Instruction-dependent cycle counts, memory effects |
 | 08 | Configuration tradeoffs | Register ports, shifters, ALU options |
 | 09 | Traps and counters | Unsupported/misaligned operations, cycle counters |
-| 10 | Optional extensions | Configured RV32M/RV32C experiments if useful |
-| 11 | Compiler and ABI | Calls, stack, GCC at -O0 and -Os/-O2 |
+| 10 | Interrupt interface | irq/eoi, masking, latching, handler entry/return with custom PicoRV32 instructions |
+| 11 | PCPI coprocessor interface | Valid/ready/wait handshake and a minimal external operation |
+| 12 | Optional ISA extensions | Configured RV32M/RV32C experiments if useful |
+| 13 | Compiler and ABI | Calls, stack, GCC at -O0 and -Os/-O2 |
+
+The PicoRV32 interrupt controller uses custom instructions (not the standard RISC-V privileged CSR / trap interface). The IRQ lab must distinguish this implementation-specific behavior from the RV32I ISA. The PCPI lab must distinguish the external handshake from an ISA extension. 
 
 The learning sequence is intentionally not identical to `cisc68k`. A comparison based on observed results will eventually feed `cisc68k` Lab12.
 
@@ -88,7 +92,7 @@ The learning sequence is intentionally not identical to `cisc68k`. A comparison 
 
 - Pin and copy unmodified upstream PicoRV32 RTL and license.
 - Create an independent minimal testbench and simple native-bus memory model. (Committed)
-- Execute a short machine-code program, even without a RISC-V compiler installed. (Ready to validate)
+- Execute a short machine-code program, even without a RISC-V compiler installed. (PASS on Mac mini)
 - Verify a store to an address separate from program code, then print an explicit `PASS` or `FAIL`.
 - Provide a simulation timeout and VCD output.
 - Record the exact commands and observed results in `labs/lab00/README.md` once implemented.
