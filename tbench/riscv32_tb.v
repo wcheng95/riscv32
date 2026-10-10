@@ -33,13 +33,8 @@ module riscv32_tb;
 
     initial begin
         for (i = 0; i < 2048; i = i + 1) memory[i] = 32'h00000013; // NOP
-        // addi x1,x0,5; addi x2,x0,7; add x3,x1,x2
-        memory[0] = 32'h00500093;
-        memory[1] = 32'h00700113;
-        memory[2] = 32'h002081b3;
-        memory[3] = 32'h00001237; // lui x4,0x1 -> 0x1000
-        memory[4] = 32'h00322023; // sw x3,0(x4)
-        memory[5] = 32'h0000006f; // jal x0,0 (park)
+        // Load the assembled Lab00 instruction image, not hand-written opcodes.
+        $readmemh("build/lab00.hex", memory, 0, 5);
         memory[1024] = 32'h00000000;
         repeat (10) @(negedge clk);
         resetn = 1;
