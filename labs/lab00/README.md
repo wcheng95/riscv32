@@ -44,6 +44,15 @@ PASS: Lab00 result=12 cycles=...
 
 The cycle count is measured by the testbench; it is not an ISA-defined instruction count. A timeout, trap or wrong store must fail simulation.
 
+## Bus trace
+
+```sh
+make trace LAB=lab00
+cat build/lab00.trace
+```
+
+See [trace format](../../docs/trace.md). Each row represents one completed native-memory transfer; the trace is separate from VCD waveform output.
+
 ## Signals to inspect
 
 `resetn`, `trap`, `mem_valid`, `mem_ready`, `mem_instr`, `mem_addr`, `mem_wdata`, `mem_wstrb`, `mem_rdata`.
