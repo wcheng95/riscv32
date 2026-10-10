@@ -6,7 +6,7 @@
 brew install icarus-verilog riscv64-elf-gcc
 ```
 
-This supplies `iverilog`, `vvp`, `riscv64-elf-gcc` and the RISC-V ELF binutils. The cross-compiler has a 64-bit name but can generate RV32I code using `-march=rv32i -mabi=ilp32`. The first hardcoded-instruction test does **not** need GCC, so simulation can be verified independently.
+This supplies `iverilog`, `vvp`, `riscv64-elf-gcc` and the RISC-V ELF binutils. The cross-compiler has a 64-bit name but can generate RV32I code using `-march=rv32i -mabi=ilp32`. Both labs now use GCC/binutils to compile the lab assembly image; Icarus remains the simulator.
 
 ```sh
 git clone https://github.com/wcheng95/riscv32.git
@@ -21,7 +21,7 @@ The `wave` target writes `build/lab00.vcd`; open it in a waveform viewer such as
 ## Architecture of Lab00
 
 - CPU: original, unchanged `picorv32/picorv32.v`.
-- Machine code: six 32-bit instructions initialized directly in the testbench.
+- Machine code: six 32-bit instructions compiled from `labs/lab00/lab00.S` with the shared `labs/common/link.ld` script and loaded via `build/lab00.hex`.
 - Unified 8 KiB memory, little-endian, at `0x0000–0x1fff`.
 - Code at `0x0000`, result at `0x1000`.
 - Native memory bus: `mem_valid`, `mem_ready`, `mem_addr`, `mem_wdata`, `mem_wstrb`, `mem_rdata`.
@@ -43,4 +43,4 @@ The default build uses only Icarus; do not start a custom toolchain build unless
 
 ## Validation state
 
-The files are provided for local macOS validation. Passing results on the Mac mini must be confirmed by running `make test` there.
+The files are provided for local macOS validation. The original hardcoded Lab00 passed on the Mac mini (27 cycles). The revised assembly-based Lab00 and Lab01 require rerunning `make test-all` on the Mac mini.
