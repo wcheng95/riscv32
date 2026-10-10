@@ -45,10 +45,10 @@ $(SIM): build/$(LAB).hex $(SRC) | build
 
 test: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace
-	@echo "Trace: build/$(LAB).trace"
+	@echo "Trace: build/bus.trace"
 
 trace: $(SIM)
-	$(VVP) $(SIM) +trace
+	$(VVP) $(SIM) $(RUN_ARGS) +trace
 	@echo "Trace: build/$(LAB).trace"
 
 test-all:
