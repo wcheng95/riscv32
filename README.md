@@ -6,7 +6,7 @@ The goal is architectural understanding: RV32I programming model, instruction en
 
 ## Status
 
-Reference RTL and ISC license imported; testbench and passing simulations are not yet implemented.
+Reference RTL and ISC license imported. Lab00 testbench, Makefile and macOS environment instructions are committed; simulation on Mac mini is pending validation.
 
 ## Design Decisions
 
@@ -63,7 +63,7 @@ riscv32/
 └── logs/                 # ignored
 ```
 
-The upstream RTL is now present. Other entries are the planned implementation layout.
+The upstream RTL and first testbench are present. Other entries are the planned layout.
 
 ## Roadmap (Provisional)
 
@@ -87,8 +87,8 @@ The learning sequence is intentionally not identical to `cisc68k`. A comparison 
 ## First Milestone: Lab00
 
 - Pin and copy unmodified upstream PicoRV32 RTL and license.
-- Create an independent minimal testbench and simple native-bus memory model.
-- Execute a short machine-code program, even without a RISC-V compiler installed.
+- Create an independent minimal testbench and simple native-bus memory model. (Committed)
+- Execute a short machine-code program, even without a RISC-V compiler installed. (Ready to validate)
 - Verify a store to an address separate from program code, then print an explicit `PASS` or `FAIL`.
 - Provide a simulation timeout and VCD output.
 - Record the exact commands and observed results in `labs/lab00/README.md` once implemented.
