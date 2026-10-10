@@ -1,15 +1,46 @@
 IVERILOG ?= iverilog
 VVP ?= vvp
-TOP = riscv32_tb
-SIM = build/lab00.vvp
-SRC = tbench/riscv32_tb.v picorv32/picorv32.v
+PYTHON ?= python3
+RISCV_PREFIX ?= riscv64-elf-
+CC = $(RISCV_PREFIX)gcc
+OBJCOPY = $(RISCV_PREFIX)objcopy
+OBJDUMP = $(RISCV_PREFIX)objdump
 
-.PHONY: all test wave clean toolchain-check
+LAB ?= lab00
+ifeq ($(filter $(LAB),lab00 lab01),)
+$(error Unsupported LAB=$(LAB); choose lab00 or lab01)
+endif
+
+ifeq ($(LAB),lab00)
+TOP = riscv32_tb
+TB = tbench/riscv32_tb.v
+else
+TOP = lab01_tb
+TB = tbench/lab01_tb.v
+endif
+
+SIM = build/$(LAB).vvp
+SRC = $(TB) picorv32/picorv32.v
+LAB01_FLAGS = -march=rv32i -mabi=ilp32 -mno-relax -nostdlib -nostartfiles -Wl,-Ttext=0 -Wl,-e,_start -Wl,--build-id=none
+
+.PHONY: all test wave disasm clean toolchain-check
 all: test
 
 build:
 	mkdir -p build
 
+build/lab01.elf: labs/lab01/lab01.S | build
+	$(CC) $(LAB01_FLAGS) -o $@ $<
+
+build/lab01.bin: build/lab01.elf
+	$(OBJCOPY) -O binary -j .text $< $@
+
+build/lab01.hex: build/lab01.bin tools/bin2hex.py
+	$(PYTHON) tools/bin2hex.py $< $@
+
+ifeq ($(LAB),lab01)
+$(SIM): build/lab01.hex
+endif
 $(SIM): $(SRC) | build
 	$(IVERILOG) -g2012 -s $(TOP) -o $@ $(SRC)
 
@@ -18,14 +49,17 @@ test: $(SIM)
 
 wave: $(SIM)
 	$(VVP) $(SIM) +vcd
-	@echo "VCD: build/lab00.vcd"
+	@echo "VCD: build/$(LAB).vcd"
+
+disasm: build/lab01.elf
+	$(OBJDUMP) -d $<
 
 toolchain-check:
 	@command -v iverilog
 	@command -v vvp
-	@command -v riscv64-elf-gcc
-	@command -v riscv64-elf-objdump
-	@riscv64-elf-gcc --version | head -1
+	@command -v $(CC)
+	@command -v $(OBJDUMP)
+	@$(CC) --version | head -1
 
 clean:
 	rm -rf build
