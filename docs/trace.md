@@ -1,15 +1,15 @@
 # Human-Readable Native Bus Trace
 
-The shared passive monitor `tbench/bus_trace.v` records completed PicoRV32 native-memory transfers. It never drives signals or changes CPU/memory timing.
+The single shared passive monitor `tbench/bus_trace.v` records completed PicoRV32 native-memory transfers. It never drives signals or changes CPU/memory timing.
 
 ## Usage
 
 ```sh
 make test LAB=lab00
-cat build/lab00.trace
+cat build/bus.trace
 
 make test LAB=lab01
-cat build/lab01.trace
+cat build/bus.trace
 ```
 
 Human-readable tracing is **on by default** for `make`, `make test`, `make test-all`, `make trace` and `make wave`. The trace is written to a file, not dumped to the terminal. `make wave LAB=...` generates both VCD and trace. Direct VVP execution without `+trace` still disables the optional logger.
@@ -35,8 +35,8 @@ The logger uses the same bus signals that the testbench checks. Instruction fetc
 
 - Module: `tbench/bus_trace.v`
 - Instantiated by the shared `tbench/riscv32_tb.v`
-- Activated with VVP plusarg `+trace`, and selected using `+lab=<number>`
-- Outputs: `build/lab00.trace`, `build/lab01.trace`
+- Activated with VVP plusarg `+trace`; the monitor does not inspect lab selection
+- Output: `build/bus.trace` (overwritten each simulation run)
 - Source RTL `picorv32/picorv32.v` is untouched.
 
 ## Validation
