@@ -26,10 +26,11 @@ Follow `cisc68k` in layout and method:
 - `docs/mission-scope.md`: mission, boundaries and scope.
 - `docs/roadmap.md`: numbered experiments and status.
 - `docs/environment.md`: tools, memory map and simulation flow.
+- `docs/trace.md`: passive human-readable bus transaction trace.
 - `docs/references.md`: reference design, ISA and toolchain.
 - `labs/labNN/README.md`: goal, program, expected output, build/run, waveform or disassembly inspection, questions and completion evidence.
 - `labs/common/`: minimal shared startup and linker files once assembly/C labs require them.
-- `tbench/`: testbench and only those memory/monitor components demanded by an experiment.
+- `tbench/`: testbench and only those memory/monitor components demanded by an experiment; optional shared bus trace in `tbench/bus_trace.v`.
 - `logs/` and `build/`: generated artifacts, not committed.
 
 Distinguish `[ISA]` RISC-V-defined behavior, `[PICO]` PicoRV32 implementation details, `[ASM]` assembler syntax, `[LD]` linker behavior, and `[CONV]` project conventions.
@@ -96,6 +97,10 @@ The learning sequence is intentionally not identical to `cisc68k`. A comparison 
 - Verify a store to an address separate from program code, then print an explicit `PASS` or `FAIL`.
 - Provide a simulation timeout and VCD output.
 - Record the exact commands and observed results in `labs/lab00/README.md` once implemented.
+
+## Trace
+
+`make trace LAB=lab00` or `make trace LAB=lab01` produces `build/<lab>.trace` with completed IFETCH, READ and WRITE bus transactions. Trace generation is opt-in and does not change functional tests. Mac mini trace output awaits validation.
 
 ## Scope Rule
 
