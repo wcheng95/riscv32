@@ -82,3 +82,7 @@ The *original hardcoded-opcode* version passed on the Mac mini. The testbench no
 ## Completion
 
 **Previously PASS; updated assembly-based flow pending revalidation.** No change to the expected store (12 at 0x1000); new toolchain flow must be checked with `make clean && make test LAB=lab00`.
+
+## Shared Testbench Update
+
+The simulation now uses `tbench/riscv32_tb.v` together with `tbench/ram.v` and `tbench/bus_trace.v`. The original per-lab passing result above predates this refactor; the common simulation machine must be revalidated with `make test LAB=lab00`.
