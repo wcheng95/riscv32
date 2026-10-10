@@ -57,6 +57,15 @@ PASS: Lab01 x0=0 x2=-3 x31=2 x1=5 cycles=...
 
 The testbench checks the first nine sequential instruction fetch addresses, every word store, and final RAM contents. A trap or timeout fails the test. Observed on Mac mini: 52 testbench cycles.
 
+## Bus trace
+
+```sh
+make trace LAB=lab01
+cat build/lab01.trace
+```
+
+See [trace format](../../docs/trace.md). Each row represents one completed native-memory transfer; the trace is separate from VCD waveform output.
+
 ## Waveform inspection
 
 Inspect `resetn`, `mem_valid`, `mem_ready`, `mem_instr`, `mem_addr`, `mem_wdata`, `mem_wstrb` and `trap`.
