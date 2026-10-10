@@ -34,11 +34,11 @@ The logger uses the same bus signals that the testbench checks. Instruction fetc
 ## Implementation
 
 - Module: `tbench/bus_trace.v`
-- Instantiated by both `tbench/riscv32_tb.v` and `tbench/lab01_tb.v`
-- Activated with VVP plusarg `+trace`
+- Instantiated by the shared `tbench/riscv32_tb.v`
+- Activated with VVP plusarg `+trace`, and selected using `+lab=<number>`
 - Outputs: `build/lab00.trace`, `build/lab01.trace`
 - Source RTL `picorv32/picorv32.v` is untouched.
 
 ## Validation
 
-Pending a Mac mini run of `make trace LAB=lab01` and review of the generated file.
+Pending Mac mini validation of the refactored shared testbench using `make clean && make test-all`.
