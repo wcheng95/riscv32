@@ -45,7 +45,8 @@ $(SIM): build/$(LAB).hex $(SRC) | build
 	$(IVERILOG) -g2012 -s $(TOP) -o $@ $(SRC)
 
 test: $(SIM)
-	$(VVP) $(SIM)
+	$(VVP) $(SIM) +trace
+	@echo "Trace: build/$(LAB).trace"
 
 trace: $(SIM)
 	$(VVP) $(SIM) +trace
@@ -56,7 +57,7 @@ test-all:
 	$(MAKE) test LAB=lab01
 
 wave: $(SIM)
-	$(VVP) $(SIM) +vcd
+	$(VVP) $(SIM) +trace +vcd
 	@echo "VCD: build/$(LAB).vcd"
 
 disasm: build/$(LAB).elf
