@@ -39,6 +39,14 @@ module lab01_tb;
         resetn = 1;
     end
 
+    // Optional passive, per-lab trace; no effect on memory timing.
+    bus_trace #(.FILE_NAME("build/lab01.trace")) trace_monitor (
+        .clk(clk), .resetn(resetn), .cycle(cycles),
+        .mem_valid(mem_valid), .mem_ready(mem_ready), .mem_instr(mem_instr),
+        .mem_addr(mem_addr), .mem_wdata(mem_wdata),
+        .mem_wstrb(mem_wstrb), .mem_rdata(mem_rdata)
+    );
+
     initial begin
         if ($test$plusargs("vcd")) begin
             $dumpfile("build/lab01.vcd");
