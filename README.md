@@ -1,49 +1,103 @@
 # riscv32
 
-A small RV32I RTL simulation environment for learning the RISC-V ISA and comparing it with Motorola 68000.
+Study the RISC-V RV32 architecture using a cycle-visible RTL simulation environment centered on [PicoRV32](https://github.com/YosysHQ/picorv32).
 
-## Approach
+The goal is architectural understanding: RV32I programming model, instruction encoding, memory operations, branches, the native memory interface, execution timing, CPU configuration and compiler-generated code. The CPU reference RTL is preserved **unmodified**. Follow the documentation and lab format of [cisc68k](https://github.com/wcheng95/cisc68k), but let PicoRV32's features determine the lab topics.
 
-- CPU reference: [YosysHQ/PicoRV32](https://github.com/YosysHQ/picorv32) (ISC license).
-- Keep upstream `picorv32` RTL intact; configure a minimal **RV32I** core using its native valid/ready memory bus.
-- Own our testbench, RAM model, assembly/C labs, assertions, and PASS/FAIL results.
-- Use Icarus Verilog initially; no FPGA, SoC, AXI, Wishbone, interrupts, PCPI, RV32M, or RV32C in the first milestone.
-- Focus on ISA behavior and later compare instruction encoding, compiler output and cycle counts with `cisc68k`.
+## Status
 
-## Planned layout
+Planning. No CPU RTL, testbench or passing simulations are committed yet.
+
+## Design Decisions
+
+- Preserve upstream `picorv32.v` unchanged, with original copyright/license and a recorded upstream commit SHA.
+- Configure the `picorv32` module rather than stripping or editing its internals.
+- Begin with RV32I, the PicoRV32 native memory interface, a small RAM and a minimal memory-mapped monitor.
+- Develop our own testbench, monitor, self-checking tests and labs.
+- Icarus Verilog initially; Verilator and Surfer when useful.
+- No FPGA, complete SoC, AXI, Wishbone or operating system.
+- Initially disable RV32M, RV32C, IRQ and PCPI; optional features may be enabled in later targeted experiments.
+- Treat peripheral models as a means to observe the CPU interface, not as standalone projects.
+
+## Documentation and Lab Conventions
+
+Follow `cisc68k` in layout and method:
+
+- `docs/mission-scope.md`: mission, boundaries and scope.
+- `docs/roadmap.md`: numbered experiments and status.
+- `docs/environment.md`: tools, memory map and simulation flow.
+- `docs/references.md`: reference design, ISA and toolchain.
+- `labs/labNN/README.md`: goal, program, expected output, build/run, waveform or disassembly inspection, questions and completion evidence.
+- `labs/common/`: minimal shared startup and linker files once assembly/C labs require them.
+- `tbench/`: testbench and only those memory/monitor components demanded by an experiment.
+- `logs/` and `build/`: generated artifacts, not committed.
+
+Distinguish `[ISA]` RISC-V-defined behavior, `[PICO]` PicoRV32 implementation details, `[ASM]` assembler syntax, `[LD]` linker behavior, and `[CONV]` project conventions.
+
+## Planned Layout
 
 ```text
-rtl/picorv32.v       upstream CPU RTL, with its copyright and license
- tb/tb_picorv32.v   independent self-checking testbench
-firmware/hello.S    introductory RV32I program
-labs/               progressively larger experiments
-docs/architecture.md notes on boundaries and the memory interface
-Makefile            test / wave / clean
-build/              generated files, ignored by Git
+riscv32/
+├── README.md
+├── Makefile
+├── picorv32/
+│   └── picorv32.v       # exact upstream source
+├── tbench/
+│   ├── riscv32_tb.v
+│   ├── ram.v
+│   └── monitor.v
+├── labs/
+│   ├── common/
+│   │   ├── README.md
+│   │   ├── start.S
+│   │   └── link.ld
+│   ├── lab00/
+│   │   └── README.md
+│   └── ...
+├── docs/
+│   ├── mission-scope.md
+│   ├── roadmap.md
+│   ├── environment.md
+│   └── references.md
+├── build/                # ignored
+└── logs/                 # ignored
 ```
 
-The upstream PicoRV32 source should be pinned to a specific commit, and the commit SHA recorded when copied into `rtl/`. Retain the original ISC copyright notice and include its license.
+These are targets for the implementation, not files already present.
 
-## Lab roadmap (provisional)
+## Roadmap (Provisional)
 
-1. Boot and execute a small machine-code program, verify a memory write.
-2. Registers and immediate operations.
-3. ALU operations.
-4. Loads, stores and byte enables.
-5. Branches and loops.
-6. Calls and stack conventions.
-7. Instruction formats and address calculation.
-8. GCC-generated assembly at `-O0`.
-9. Optimization at `-O2`.
-10. Cycle counts and memory latency.
-11. RV32I versus 68000 comparison.
+| Lab | Subject | Specific observation |
+| --- | --- | --- |
+| 00 | Minimal simulation | Reset, fetch, self-check, monitor write and waveform |
+| 01 | Register model and PC | x0, x1–x31, reset entry, register arithmetic |
+| 02 | Instruction encoding | R/I/S/B/U/J formats, immediate decoding |
+| 03 | ALU and shifts | Operations, signedness, shift timing |
+| 04 | Loads and stores | Widths, sign extension, write strobes, alignment |
+| 05 | Control flow | Branches, JAL/JALR, PC-relative addressing |
+| 06 | Native memory interface | mem_valid/mem_ready, mem_instr, latency and stalls |
+| 07 | State machine and CPI | Instruction-dependent cycle counts, memory effects |
+| 08 | Configuration tradeoffs | Register ports, shifters, ALU options |
+| 09 | Traps and counters | Unsupported/misaligned operations, cycle counters |
+| 10 | Optional extensions | Configured RV32M/RV32C experiments if useful |
+| 11 | Compiler and ABI | Calls, stack, GCC at -O0 and -Os/-O2 |
 
-## Milestone 1 acceptance
+The learning sequence is intentionally not identical to `cisc68k`. A comparison based on observed results will eventually feed `cisc68k` Lab12.
 
-- Compile the unmodified PicoRV32 CPU and our testbench using Icarus Verilog.
-- Execute a four-instruction RV32I arithmetic-and-store program from a small RAM model.
-- Check the expected write to a non-code data address.
-- Print `PASS` or `FAIL`, with a bounded timeout.
-- Keep all CPU peripherals and extended ISA features disabled.
+## First Milestone: Lab00
 
-Status: **Planning** — this README does not claim a completed implementation or passing tests.
+- Pin and copy unmodified upstream PicoRV32 RTL and license.
+- Create an independent minimal testbench and simple native-bus memory model.
+- Execute a short machine-code program, even without a RISC-V compiler installed.
+- Verify a store to an address separate from program code, then print an explicit `PASS` or `FAIL`.
+- Provide a simulation timeout and VCD output.
+- Record the exact commands and observed results in `labs/lab00/README.md` once implemented.
+
+## Scope Rule
+
+Before adding machinery, ask: Which PicoRV32 or RISC-V question does it answer? Can the existing simulator answer it already? Keep the smallest experiment that makes the relevant behavior visible.
+
+## Credits
+
+- [PicoRV32](https://github.com/YosysHQ/picorv32) by Claire Xenia Wolf / YosysHQ — the reference CPU RTL, ISC license.
+- [cisc68k](https://github.com/wcheng95/cisc68k) — documentation and experimental lab conventions.
