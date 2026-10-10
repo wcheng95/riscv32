@@ -48,7 +48,7 @@ The cycle count is measured by the testbench; it is not an ISA-defined instructi
 
 ```sh
 make trace LAB=lab00
-cat build/lab00.trace
+cat build/bus.trace
 ```
 
 See [trace format](../../docs/trace.md). Each row represents one completed native-memory transfer; the trace is separate from VCD waveform output.
