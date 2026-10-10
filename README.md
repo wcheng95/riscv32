@@ -100,7 +100,7 @@ The learning sequence is intentionally not identical to `cisc68k`. A comparison 
 
 ## Trace
 
-`make trace LAB=lab00` or `make trace LAB=lab01` produces `build/<lab>.trace` with completed IFETCH, READ and WRITE bus transactions. Trace generation is on by default for `make`, `make test`, `make test-all` and `make wave`; it does not change functional tests. Mac mini trace output awaits validation.
+`make trace LAB=lab00` or `make trace LAB=lab01` produces `build/bus.trace` with completed IFETCH, READ and WRITE bus transactions. Trace generation is on by default for `make`, `make test`, `make test-all` and `make wave`; it does not change functional tests. The file is overwritten each run; Mac mini verification of the refactored testbench is pending.
 
 ## Scope Rule
 
