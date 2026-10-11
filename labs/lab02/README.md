@@ -72,4 +72,28 @@ Next decode `beq` and `jal`: notice the offsets are PC-relative, not absolute an
 
 ## Completion
 
-Pending functional test on the Mac mini. Record observed cycles and bus behavior here; do not update the root README with progress.
+**PASS — Mac mini functional validation complete.** Observed 60 testbench cycles.
+
+## Observed Mac mini result (2026-10-11)
+
+```text
+STORE 0 addr=00001000 data=0000000c
+STORE 1 addr=00001004 data=00000028
+STORE 2 addr=00001008 data=00000010
+PASS: Lab02 R/I/S/B/U/J formats cycles=60
+```
+
+The generated ELF is `elf32-littleriscv`. The disassembly confirms `auipc` at 0x10, a taken `beq` at 0x18, and a `jal` at 0x24 that saves 0x28 as its link address.
+
+### Bus trace observation
+
+```text
+27  IFETCH  00000018    00318463
+31  IFETCH  0000001c    00022623
+34  IFETCH  00000020    00322023
+41  WRITE   00001000    0000000c    1111
+```
+
+Although the branch at 0x18 is taken to 0x20, the CPU's memory interface reports a fetch from 0x1c. **A bus fetch does not guarantee the fetched instruction is executed or retired.** No write to 0x100c occurred. This is worth examining in the later execution-timing/control-flow lab.
+
+The trace is a memory-bus record, not a formal retirement trace. Source files and upstream RTL remain unchanged.
