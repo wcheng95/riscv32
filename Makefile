@@ -7,8 +7,8 @@ OBJCOPY = $(RISCV_PREFIX)objcopy
 OBJDUMP = $(RISCV_PREFIX)objdump
 
 LAB ?= lab00
-ifeq ($(filter $(LAB),lab00 lab01),)
-$(error Unsupported LAB=$(LAB); choose lab00 or lab01)
+ifeq ($(filter $(LAB),lab00 lab01 lab02),)
+$(error Unsupported LAB=$(LAB); choose lab00, lab01 or lab02)
 endif
 
 TOP = riscv32_tb
@@ -17,6 +17,7 @@ SRC = tbench/riscv32_tb.v tbench/ram.v tbench/bus_trace.v picorv32/picorv32.v
 LAB_ID = $(patsubst lab%,%,$(LAB))
 WORDS_lab00 = 6
 WORDS_lab01 = 10
+WORDS_lab02 = 14
 WORDS = $(WORDS_$(LAB))
 RUN_ARGS = +lab=$(LAB_ID) +hex=build/$(LAB).hex +words=$(WORDS)
 
@@ -34,6 +35,9 @@ build/lab00.elf: labs/lab00/lab00.S labs/common/link.ld | build
 build/lab01.elf: labs/lab01/lab01.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
+build/lab02.elf: labs/lab02/lab02.S labs/common/link.ld | build
+	$(CC) $(ASFLAGS) -o $@ $<
+
 build/%.bin: build/%.elf
 	$(OBJCOPY) -O binary -j .text $< $@
 
@@ -49,11 +53,12 @@ test: $(SIM)
 
 trace: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace
-	@echo "Trace: build/$(LAB).trace"
+	@echo "Trace: build/bus.trace"
 
 test-all:
 	$(MAKE) test LAB=lab00
 	$(MAKE) test LAB=lab01
+	$(MAKE) test LAB=lab02
 
 wave: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
