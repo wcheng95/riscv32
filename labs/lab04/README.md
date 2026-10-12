@@ -55,4 +55,32 @@ All traces and waveforms remain under `build/`. The one shared `riscv32_tb.v`, `
 
 ## Completion
 
-Mac mini simulation pending. Record actual results and cycle counts here, not in root README.
+**PASS — Mac mini functional validation complete.** Eight accepted stores; 107 testbench cycles.
+
+## Observed Mac mini result
+
+```text
+STORE 0 addr=00001000 data=80ff7f01
+STORE 1 addr=00001004 data=0000007f
+STORE 2 addr=00001008 data=000000ff
+STORE 3 addr=0000100c data=ffff80ff
+STORE 4 addr=00001010 data=000080ff
+STORE 5 addr=00001014 data=01010101
+STORE 6 addr=00001014 data=7f017f01
+STORE 7 addr=00001018 data=7f010113
+PASS: Lab04 load/store widths and strobes cycles=107
+```
+
+### Native bus trace observations
+
+- Byte store: cycle 85, address `0x1014`, `mem_wdata=01010101`, `mem_wstrb=0010`.
+- Halfword store: cycle 92, address `0x1014`, `mem_wdata=7f017f01`, `mem_wstrb=1100`.
+- Word read: cycle 99, address `0x1014`, `mem_rdata=7f010113`.
+- The four earlier byte/halfword reads all returned the aligned bus word `0x80ff7f01`; PicoRV32 selects and extends individual values internally.
+
+**Important:** `mem_wdata` on subword writes contains repeated byte/halfword patterns. Only lanes enabled by `mem_wstrb` update memory. The bus address is word-aligned for these subword transactions; byte offset is represented in the strobes.
+
+The original low byte `0x13` at address `0x1014` remains unchanged, resulting in final word `0x7f010113`.
+
+The supplied trace/disassembly confirms the functional tests. Misaligned access exceptions are deliberately not part of Lab04.
+
