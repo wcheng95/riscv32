@@ -56,4 +56,38 @@ Tracing is enabled by default and remains owned by the single native-bus monitor
 
 ## Completion
 
-Implementation committed; Mac mini functional verification and observed cycle count pending. Record actual results here, not in the root README.
+**PASS — Mac mini functional verification complete.** All four expected stores matched; 62 testbench cycles elapsed to the completion check.
+
+## Observed Mac mini output (2026-10-11)
+
+```text
+STORE 0 addr=00001000 data=7fffffff
+STORE 1 addr=00001004 data=ffffffff
+STORE 2 addr=00001008 data=00000001
+STORE 3 addr=0000100c data=00000001
+PASS: Lab03 shifts and signedness cycles=62
+```
+
+The disassembly verifies:
+- `srli` at 0x08: `0010d193`
+- `srai` at 0x0c: `4010d293`
+- `sltu` at 0x10: `00113333`
+- `slt` at 0x14: `0020a3b3`
+
+Note the `0x40000000` difference between the two shift encodings: `srai` selects the arithmetic right shift via its upper immediate bits.
+
+## Bus trace observations
+
+```text
+11 IFETCH 00000008 0010d193
+15 IFETCH 0000000c 4010d293
+20 IFETCH 00000010 00113333
+25 IFETCH 00000014 0020a3b3
+40 WRITE  00001000 7fffffff 1111
+47 WRITE  00001004 ffffffff 1111
+54 WRITE  00001008 00000001 1111
+61 WRITE  0000100c 00000001 1111
+```
+
+The fetch completion cycle gaps vary (e.g. 4, 5, 5), but this bus trace is **not** an instruction-retirement trace. Timing details and per-instruction CPI should be examined in the dedicated timing lab. The last store and park-instruction fetch occur before the testbench terminates.
+
