@@ -97,3 +97,11 @@ The generated ELF is `elf32-littleriscv`. The disassembly confirms `auipc` at 0x
 Although the branch at 0x18 is taken to 0x20, the CPU's memory interface reports a fetch from 0x1c. **A bus fetch does not guarantee the fetched instruction is executed or retired.** No write to 0x100c occurred. This is worth examining in the later execution-timing/control-flow lab.
 
 The trace is a memory-bus record, not a formal retirement trace. Source files and upstream RTL remain unchanged.
+
+## Review notes: answers to Lab02 questions
+
+1. **Opcode:** bits [6:0] consistently hold the *major opcode* (instruction class); `funct3` and `funct7` can distinguish specific operations. A fixed field position simplifies decode.
+2. **Split immediates:** preserving the bit locations of `rs1`, `rs2`, and `funct3` simplifies register decoding. B-type rearranges the S-type immediate positions to encode an offset with implicit bit 0 = 0, avoiding a separate immediate left-shift in hardware.
+3. **AUIPC:** `rd = PC + (imm20 << 12)`; here the AUIPC instruction itself is at PC = `0x10`, and the immediate is zero, so `x5 = 0x10`.
+4. **JAL:** stores **PC + 4**, not the current PC, into `rd`. At PC `0x24`, `x6 = 0x28`; execution continues at target `0x2c`.
+5. **Fetch versus retirement:** a memory-bus `IFETCH` does not prove execution/retirement. At `0x1c`, the skipped store is fetched but does not generate a write.
