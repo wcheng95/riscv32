@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="930" viewBox="0 0 1400 930">
+<style>
+  text { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; fill:#111; }
+  .title { font-size:30px; font-weight:700; }
+  .sub { font-size:16px; fill:#444; }
+  .h { font-size:20px; font-weight:700; }
+  .b { font-size:16px; font-weight:600; }
+  .t { font-size:14px; }
+  .s { font-size:12px; fill:#333; }
+  .box { fill:#fff; stroke:#222; stroke-width:2; rx:10; }
+  .ctrl { fill:#eef5ff; stroke:#376ca8; stroke-width:2; rx:10; }
+  .data { fill:#eef8ec; stroke:#4c8b45; stroke-width:2; rx:10; }
+  .mem { fill:#fff0ee; stroke:#a84b42; stroke-width:2; rx:10; }
+  .state { fill:#f6f6f6; stroke:#777; stroke-width:1.5; rx:8; }
+  .optional { fill:#fafafa; stroke:#888; stroke-width:1.5; stroke-dasharray:7 5; rx:8; }
+  .wire { stroke:#222; stroke-width:2; fill:none; marker-end:url(#arrow); }
+  .ctlwire { stroke:#376ca8; stroke-width:2; fill:none; marker-end:url(#arrowBlue); }
+  .dash { stroke:#777; stroke-width:1.5; fill:none; stroke-dasharray:6 5; marker-end:url(#arrowGray); }
+</style>
+<defs>
+  <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#222"/></marker>
+  <marker id="arrowBlue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#376ca8"/></marker>
+  <marker id="arrowGray" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#777"/></marker>
+</defs>
+
+<text x="700" y="42" text-anchor="middle" class="title">PicoRV32 — RV32I Configuration Block Diagram</text>
+<text x="700" y="68" text-anchor="middle" class="sub">Derived from picorv32.v; current riscv32 lab configuration</text>
+
+<!-- core boundary -->
+<rect x="35" y="95" width="1120" height="740" class="box"/>
+<text x="55" y="125" class="h">PicoRV32 core</text>
+
+<!-- control -->
+<rect x="65" y="150" width="610" height="285" class="ctrl"/>
+<text x="85" y="180" class="h">Control / Sequencer</text>
+
+<rect x="90" y="205" width="245" height="175" class="state"/>
+<text x="212" y="235" text-anchor="middle" class="b">Main CPU FSM</text>
+<text x="110" y="267" class="t">FETCH</text>
+<text x="110" y="291" class="t">LD_RS1</text>
+<text x="110" y="315" class="t">LD_RS2</text>
+<text x="215" y="267" class="t">EXEC</text>
+<text x="215" y="291" class="t">SHIFT</text>
+<text x="215" y="315" class="t">STMEM</text>
+<text x="215" y="339" class="t">LDMEM</text>
+<text x="110" y="339" class="t">TRAP</text>
+
+<rect x="390" y="200" width="245" height="92" class="state"/>
+<text x="512" y="230" text-anchor="middle" class="b">Instruction Decoder</text>
+<text x="410" y="255" class="t">instr_* flags, is_* groups</text>
+<text x="410" y="276" class="t">rd / rs1 / rs2 / immediates</text>
+
+<rect x="390" y="315" width="245" height="82" class="state"/>
+<text x="512" y="345" text-anchor="middle" class="b">PC / Next-PC Control</text>
+<text x="410" y="369" class="t">reg_pc, reg_next_pc</text>
+<text x="410" y="389" class="t">branch / JAL / JALR selection</text>
+
+<!-- datapath -->
+<rect x="65" y="470" width="805" height="330" class="data"/>
+<text x="85" y="500" class="h">RV32I Datapath</text>
+
+<rect x="95" y="545" width="205" height="165" class="state"/>
+<text x="197" y="575" text-anchor="middle" class="b">Register File</text>
+<text x="197" y="600" text-anchor="middle" class="t">32 × 32</text>
+<text x="115" y="632" class="t">cpuregs_rs1</text>
+<text x="115" y="655" class="t">cpuregs_rs2</text>
+<text x="115" y="680" class="t">write: latched_rd</text>
+<text x="115" y="701" class="s">x0 forced to zero / writes suppressed</text>
+
+<rect x="350" y="535" width="180" height="95" class="state"/>
+<text x="440" y="565" text-anchor="middle" class="b">Operand State</text>
+<text x="370" y="590" class="t">reg_op1</text>
+<text x="370" y="612" class="t">reg_op2 / reg_sh</text>
+
+<path d="M555 540 L710 540 L760 605 L710 670 L555 670 Z" class="state"/>
+<text x="650" y="578" text-anchor="middle" class="b">ALU / Compare</text>
+<text x="650" y="604" text-anchor="middle" class="t">add / sub / logic</text>
+<text x="650" y="626" text-anchor="middle" class="t">signed/unsigned compare</text>
+<text x="650" y="648" text-anchor="middle" class="t">alu_out, alu_out_0</text>
+
+<rect x="350" y="670" width="180" height="90" class="state"/>
+<text x="440" y="700" text-anchor="middle" class="b">Iterative Shifter</text>
+<text x="370" y="725" class="t">reg_op1 + reg_sh</text>
+<text x="370" y="747" class="s">BARREL_SHIFTER=0</text>
+
+<rect x="610" y="705" width="205" height="62" class="state"/>
+<text x="712" y="733" text-anchor="middle" class="b">Result / Writeback</text>
+<text x="630" y="755" class="t">reg_out / alu_out_q → rd</text>
+
+<!-- memory interface -->
+<rect x="900" y="150" width="225" height="650" class="mem"/>
+<text x="1012" y="180" text-anchor="middle" class="h">Memory Interface</text>
+
+<rect x="925" y="215" width="175" height="155" class="state"/>
+<text x="1012" y="245" text-anchor="middle" class="b">Request Control</text>
+<text x="945" y="274" class="t">mem_state</text>
+<text x="945" y="297" class="t">mem_do_rinst</text>
+<text x="945" y="320" class="t">mem_do_rdata</text>
+<text x="945" y="343" class="t">mem_do_wdata</text>
+<text x="945" y="363" class="s">+ prefetch support</text>
+
+<rect x="925" y="405" width="175" height="145" class="state"/>
+<text x="1012" y="435" text-anchor="middle" class="b">Load / Store Lanes</text>
+<text x="945" y="463" class="t">mem_wordsize</text>
+<text x="945" y="486" class="t">byte / half / word</text>
+<text x="945" y="509" class="t">mem_wstrb</text>
+<text x="945" y="532" class="t">sign / zero extend</text>
+
+<rect x="925" y="590" width="175" height="145" class="state"/>
+<text x="1012" y="620" text-anchor="middle" class="b">Native Bus Handshake</text>
+<text x="945" y="648" class="t">mem_valid</text>
+<text x="945" y="671" class="t">mem_ready</text>
+<text x="945" y="694" class="t">mem_addr / rdata</text>
+<text x="945" y="717" class="t">wdata / wstrb</text>
+
+<!-- internal datapath wires -->
+<path d="M300 600 L350 600" class="wire"/>
+<text x="310" y="590" class="s">rs1/rs2</text>
+<path d="M530 580 L555 580" class="wire"/>
+<path d="M530 715 L585 715 L585 655" class="wire"/>
+<path d="M760 620 L820 620 L820 736 L815 736" class="wire"/>
+<path d="M610 736 L300 736 L300 690" class="wire"/>
+<text x="455" y="728" class="s">writeback</text>
+
+<!-- control arrows -->
+<path d="M335 245 L390 245" class="ctlwire"/>
+<path d="M512 292 L512 315" class="ctlwire"/>
+<path d="M390 355 L335 355" class="ctlwire"/>
+<path d="M215 380 L215 545" class="ctlwire"/>
+<path d="M335 300 L350 560" class="ctlwire"/>
+<path d="M335 325 L350 705" class="ctlwire"/>
+
+<!-- memory connections -->
+<path d="M635 245 L925 245" class="ctlwire"/>
+<text x="720" y="233" class="s">instruction request / fetched word</text>
+<path d="M760 610 L925 475" class="wire"/>
+<text x="792" y="535" class="s">effective addr / store data</text>
+<path d="M925 520 L815 736" class="wire"/>
+<text x="836" y="655" class="s">load result</text>
+<path d="M335 340 L900 340" class="ctlwire"/>
+
+<!-- external memory bus -->
+<text x="1190" y="135" class="h">External memory / testbench RAM</text>
+<path d="M1100 625 L1260 625" class="wire"/><text x="1160" y="615" class="t">mem_valid</text>
+<path d="M1260 655 L1100 655" class="wire"/><text x="1160" y="647" class="t">mem_ready</text>
+<path d="M1100 685 L1260 685" class="wire"/><text x="1160" y="677" class="t">mem_addr</text>
+<path d="M1260 715 L1100 715" class="wire"/><text x="1160" y="707" class="t">mem_rdata</text>
+<path d="M1100 745 L1260 745" class="wire"/><text x="1160" y="737" class="t">mem_wdata/wstrb</text>
+<path d="M1100 775 L1260 775" class="wire"/><text x="1160" y="767" class="t">mem_instr</text>
+
+<!-- optional interfaces -->
+<rect x="1180" y="205" width="180" height="205" class="optional"/>
+<text x="1270" y="235" text-anchor="middle" class="b">Excluded in RV32I labs</text>
+<text x="1200" y="270" class="t">C decompressor</text>
+<text x="1200" y="300" class="t">PCPI / multiplier</text>
+<text x="1200" y="330" class="t">divider</text>
+<text x="1200" y="360" class="t">IRQ controller</text>
+<text x="1200" y="390" class="t">RVFI / formal hooks</text>
+<path d="M1125 270 L1180 270" class="dash"/>
+
+<rect x="1180" y="445" width="180" height="100" class="optional"/>
+<text x="1270" y="476" text-anchor="middle" class="b">Look-ahead Bus</text>
+<text x="1200" y="503" class="t">mem_la_read/write</text>
+<text x="1200" y="526" class="t">addr / wdata / wstrb</text>
+<path d="M1100 500 L1180 500" class="dash"/>
+
+<!-- configuration -->
+<rect x="35" y="855" width="1325" height="55" class="state"/>
+<text x="55" y="879" class="b">Current study configuration:</text>
+<text x="265" y="879" class="t">RV32I · COMPRESSED_ISA=0 · ENABLE_MUL=0 · ENABLE_DIV=0 · ENABLE_PCPI=0 · ENABLE_IRQ=0</text>
+<text x="55" y="900" class="s">Multi-cycle core: instruction fetch, operand capture, execute/shift/load/store and writeback occur across FSM states; memory uses valid/ready handshaking.</text>
+</svg>
