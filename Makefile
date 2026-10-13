@@ -7,8 +7,8 @@ OBJCOPY = $(RISCV_PREFIX)objcopy
 OBJDUMP = $(RISCV_PREFIX)objdump
 
 LAB ?= lab00
-ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06),)
-$(error Unsupported LAB=$(LAB); choose lab00 through lab06)
+ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06 lab07),)
+$(error Unsupported LAB=$(LAB); choose lab00 through lab07)
 endif
 
 TOP = riscv32_tb
@@ -22,6 +22,7 @@ WORDS_lab03 = 12
 WORDS_lab04 = 17
 WORDS_lab05 = 19
 WORDS_lab06 = 7
+WORDS_lab07 = 16
 WORDS = $(WORDS_$(LAB))
 WAIT ?= 0
 RUN_ARGS = +lab=$(LAB_ID) +hex=build/$(LAB).hex +words=$(WORDS) +wait=$(WAIT)
@@ -55,6 +56,9 @@ build/lab05.elf: labs/lab05/lab05.S labs/common/link.ld | build
 build/lab06.elf: labs/lab06/lab06.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
+build/lab07.elf: labs/lab07/lab07.S labs/common/link.ld | build
+	$(CC) $(ASFLAGS) -o $@ $<
+
 build/%.bin: build/%.elf
 	$(OBJCOPY) -O binary -j .text $< $@
 
@@ -80,6 +84,7 @@ test-all:
 	$(MAKE) test LAB=lab04
 	$(MAKE) test LAB=lab05
 	$(MAKE) test LAB=lab06
+	$(MAKE) test LAB=lab07
 
 wave: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
