@@ -62,4 +62,21 @@ To compare waveforms, copy each VCD to a distinct filename under `build/` before
 
 ## Completion
 
-Implementation committed. Mac mini verification of both wait-state configurations and their measured cycle counts is pending; record observations here, not in the root README.
+**PASS — both Mac mini configurations validated.**
+
+## Observed results (2026-10-12)
+
+```text
+WAIT=0
+STORE 0 addr=00001000 data=0000002a
+STORE 1 addr=00001004 data=0000002b
+PASS: Lab06 memory wait-state handshake cycles=37
+
+WAIT=3
+STORE 0 addr=00001000 data=0000002a
+STORE 1 addr=00001004 data=0000002b
+PASS: Lab06 memory wait-state handshake cycles=67
+```
+
+The extra 30 cycles equal 3 additional wait cycles times 10 handshake opportunities on this execution path. This is consistent with the expected instruction-fetch plus data-access traffic; inspect the bus trace to confirm the exact accepted transactions. The functional results are unaffected by memory latency. The trace only records completed transfers; waveform inspection of `mem_valid`, `mem_ready`, and `wait_count` remains a useful optional exercise.
+
