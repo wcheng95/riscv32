@@ -9,6 +9,8 @@ module ram (
 );
     reg [31:0] memory [0:2047];
     integer i, words;
+    integer extra_wait = 0;
+    integer wait_count = 0;
     reg [1023:0] hexfile;
     initial begin
         for (i = 0; i < 2048; i=i+1) memory[i] = 32'h00000013;
@@ -17,6 +19,9 @@ module ram (
             $display("FAIL: supply +hex=<file> +words=<count>");
             $fatal(1);
         end
+        if ($value$plusargs("wait=%d", extra_wait)) begin
+            if (extra_wait < 0 || extra_wait > 20) $fatal(1, "Invalid wait count");
+        end
         if (words < 1 || words > 1024) $fatal(1, "invalid program size");
         $readmemh(hexfile, memory, 0, words-1);
         // Lab result area, intentionally distinct from executable code.
@@ -24,7 +29,11 @@ module ram (
     end
     always @(posedge clk) begin
         mem_ready <= 0;
-        if (resetn && mem_valid && !mem_ready && mem_addr < 8192) begin
+        if (!resetn || !mem_valid || mem_ready) wait_count <= 0;
+        else if (mem_addr < 8192 && wait_count < extra_wait)
+            wait_count <= wait_count + 1;
+        if (resetn && mem_valid && !mem_ready && mem_addr < 8192 &&
+            wait_count >= extra_wait) begin
             mem_ready <= 1;
             mem_rdata <= memory[mem_addr >> 2];
             if (mem_wstrb[0]) memory[mem_addr >> 2][7:0]   <= mem_wdata[7:0];
