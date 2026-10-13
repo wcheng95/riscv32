@@ -52,4 +52,26 @@ The bus trace is generated automatically under `build/bus.trace`. Observe the in
 
 ## Completion
 
-Implementation committed; functional verification on Mac mini and measured cycle count pending. Keep results here, not in the root README.
+**PASS — Mac mini functional validation complete.** Four expected stores and no forbidden store; 81 testbench cycles.
+
+## Observed result
+
+```text
+STORE 0 addr=00001000 data=00000024
+STORE 1 addr=00001004 data=00000038
+STORE 2 addr=00001008 data=ffffffff
+STORE 3 addr=0000100c data=00000001
+PASS: Lab05 branches JAL JALR cycles=81
+```
+
+The disassembly confirms `blt` at 0x0c, `bltu` at 0x14, `bgeu` at 0x18, `jal` at 0x20, `auipc` at 0x2c and `jalr` at 0x34.
+
+## Observations from the bus trace
+
+- The CPU fetched the skipped store at 0x10 after the taken branch at 0x0c, and the skipped store at 0x1c after the branch at 0x18; neither performed a memory write.
+- `jal` from 0x20 transferred to 0x28, preserving link 0x24.
+- `auipc` at 0x2c and `addi` at 0x30 formed target `0x3d`; `jalr` at 0x34 cleared bit 0 and fetched from 0x3c. It preserved link 0x38.
+- Last accepted store was at trace cycle 80; testbench finished on cycle 81.
+
+These are native-bus observations, not a complete instruction-retirement trace. Record future timing analysis in the dedicated timing lab.
+
