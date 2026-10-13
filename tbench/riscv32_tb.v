@@ -40,8 +40,8 @@ module riscv32_tb;
     );
 
     initial begin
-        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 4))
-            $fatal(1, "Use +lab=0 through 4");
+        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 5))
+            $fatal(1, "Use +lab=0 through 5");
         if (lab == 0) begin
             expected_stores = 1;
             expected[0] = 12;
@@ -62,7 +62,7 @@ module riscv32_tb;
             expected[1] = 32'hffffffff;
             expected[2] = 1;
             expected[3] = 1;
-        end else begin
+        end else if (lab == 4) begin
             expected_stores = 8;
             expected[0] = 32'h80ff7f01;
             expected[1] = 32'h0000007f;
@@ -70,6 +70,12 @@ module riscv32_tb;
             expected[3] = 32'hffff80ff;
             expected[4] = 32'h000080ff;
             expected[5] = 32'h7f010113;
+        end else begin
+            expected_stores = 4;
+            expected[0] = 32'h24;
+            expected[1] = 32'h38;
+            expected[2] = 32'hffffffff;
+            expected[3] = 1;
         end
         repeat (10) @(negedge clk);
         resetn = 1;
@@ -81,7 +87,8 @@ module riscv32_tb;
             else if (lab == 1) $dumpfile("build/lab01.vcd");
             else if (lab == 2) $dumpfile("build/lab02.vcd");
             else if (lab == 3) $dumpfile("build/lab03.vcd");
-            else $dumpfile("build/lab04.vcd");
+            else if (lab == 4) $dumpfile("build/lab04.vcd");
+            else $dumpfile("build/lab05.vcd");
             $dumpvars(0, riscv32_tb);
         end
     end
@@ -104,6 +111,7 @@ module riscv32_tb;
                     (lab == 2 && stores >= 3) ||
                     (lab == 3 && stores >= 4) ||
                     (lab == 4 && stores >= 8) ||
+                    (lab == 5 && stores >= 4) ||
                     mem_addr !== expected_addr ||
                     (lab == 4 && stores == 5
                       ? (mem_wstrb !== 4'b0010 || mem_wdata[15:8] !== 8'h01)
@@ -146,8 +154,10 @@ module riscv32_tb;
                     $display("PASS: Lab02 R/I/S/B/U/J formats cycles=%0d", cycles);
                 else if (lab == 3)
                     $display("PASS: Lab03 shifts and signedness cycles=%0d", cycles);
-                else
+                else if (lab == 4)
                     $display("PASS: Lab04 load/store widths and strobes cycles=%0d", cycles);
+                else
+                    $display("PASS: Lab05 branches JAL JALR cycles=%0d", cycles);
                 $finish;
             end
             if (cycles > 500) $fatal(1, "FAIL: timeout");
