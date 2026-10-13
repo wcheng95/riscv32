@@ -40,8 +40,8 @@ module riscv32_tb;
     );
 
     initial begin
-        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 6))
-            $fatal(1, "Use +lab=0 through 6");
+        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 7))
+            $fatal(1, "Use +lab=0 through 7");
         if (lab == 0) begin
             expected_stores = 1;
             expected[0] = 12;
@@ -76,10 +76,13 @@ module riscv32_tb;
             expected[1] = 32'h38;
             expected[2] = 32'hffffffff;
             expected[3] = 1;
-        end else begin
+        end else if (lab == 6) begin
             expected_stores = 2;
             expected[0] = 42;
             expected[1] = 43;
+        end else begin
+            expected_stores = 3;
+            expected[0] = 5;
         end
         repeat (10) @(negedge clk);
         resetn = 1;
@@ -93,7 +96,8 @@ module riscv32_tb;
             else if (lab == 3) $dumpfile("build/lab03.vcd");
             else if (lab == 4) $dumpfile("build/lab04.vcd");
             else if (lab == 5) $dumpfile("build/lab05.vcd");
-            else $dumpfile("build/lab06.vcd");
+            else if (lab == 6) $dumpfile("build/lab06.vcd");
+            else $dumpfile("build/lab07.vcd");
             $dumpvars(0, riscv32_tb);
         end
     end
@@ -118,13 +122,16 @@ module riscv32_tb;
                     (lab == 4 && stores >= 8) ||
                     (lab == 5 && stores >= 4) ||
                     (lab == 6 && stores >= 2) ||
+                    (lab == 7 && stores >= 3) ||
                     mem_addr !== expected_addr ||
                     (lab == 4 && stores == 5
                       ? (mem_wstrb !== 4'b0010 || mem_wdata[15:8] !== 8'h01)
                       : lab == 4 && stores == 6
                       ? (mem_wstrb !== 4'b1100 || mem_wdata[31:16] !== 16'h7f01)
                       : (mem_wstrb !== 4'b1111 ||
-                         mem_wdata !== expected[lab == 4 && stores == 7 ? 5 : stores])))
+                         (lab == 7 && stores > 0
+                           ? (mem_wdata < 1 || mem_wdata > 500)
+                           : mem_wdata !== expected[lab == 4 && stores == 7 ? 5 : stores]))))
                     $fatal(1, "FAIL: store #%0d addr=%08x data=%08x strb=%b",
                            stores, mem_addr, mem_wdata, mem_wstrb);
                 if (lab == 0)
@@ -143,7 +150,7 @@ module riscv32_tb;
             cycles <= cycles + 1;
             if (trap) $fatal(1, "FAIL: unexpected CPU trap");
             if (completed) begin
-                for (i=0; i<(lab == 4 ? 5 : expected_stores); i=i+1)
+                for (i=0; i<(lab == 4 ? 5 : (lab == 7 ? 1 : expected_stores)); i=i+1)
                     if (main_ram.memory[1024+i] !== expected[i])
                         $fatal(1, "FAIL: RAM[%0d] got %08x expected %08x",
                                i, main_ram.memory[1024+i], expected[i]);
@@ -164,8 +171,13 @@ module riscv32_tb;
                     $display("PASS: Lab04 load/store widths and strobes cycles=%0d", cycles);
                 else if (lab == 5)
                     $display("PASS: Lab05 branches JAL JALR cycles=%0d", cycles);
-                else
+                else if (lab == 6)
                     $display("PASS: Lab06 memory wait-state handshake cycles=%0d", cycles);
+                else begin
+                    if (main_ram.memory[1025] <= main_ram.memory[1026])
+                        $fatal(1, "FAIL: measured cycles must exceed retired instructions");
+                    $display("PASS: Lab07 cycle_delta=%0d instret_delta=%0d simulation_cycles=%0d", main_ram.memory[1025], main_ram.memory[1026], cycles);
+                end
                 $finish;
             end
             if (cycles > 500) $fatal(1, "FAIL: timeout");
