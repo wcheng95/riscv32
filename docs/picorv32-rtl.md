@@ -15,6 +15,26 @@ The configured study core is **RV32I**: compressed instructions, multiply/divide
 
 Use the study RTL for the relaxed source-order walkthrough, and cross-check any point against the untouched upstream copy under `picorv32/`.
 
+## Session progress
+
+### S01 — module parameters — DONE
+
+**Study RTL:** through line 87  
+**Next:** line 88, module port list
+
+What we settled:
+
+- PicoRV32 configuration values here are Verilog **parameters**: elaboration/build-time constants, not runtime pins.
+- `INSN` means *instruction*; `CATCH_ILLINSN=1` catches unsupported/illegal instruction encodings and routes them toward trap handling.
+- For the stripped study RTL, `ENABLE_COUNTERS=0`; cycle/instret counters are outside the strict RV32I study scope.
+- With `ENABLE_IRQ=0`, `MASKED_IRQ`, `LATCHED_IRQ`, and `PROGADDR_IRQ` are IRQ-related configuration and not part of our RV32I path.
+- `PROGADDR_RESET` supplies the reset PC.
+- `STACKADDR` optionally supplies the initial value of `x2` / `sp`. The default `32'hffff_ffff` is a sentinel meaning PicoRV32 does not initialize `sp` from this parameter.
+- RISC-V has no special stack engine: `sp` is architectural register `x2`, used by software convention with ordinary integer arithmetic and loads/stores.
+- The standard stack grows toward lower addresses. A function allocates a frame by subtracting from `sp` and releases it by restoring `sp`.
+- Standard RISC-V ABI stack alignment is 16 bytes, so a compliant `sp` has `sp[3:0] == 4'b0000`. Alignment alone does not make an address usable; the stack must also have valid writable memory below it.
+- `STACKADDR` is mainly startup convenience: when supplied, hardware can initialize `sp` so startup software does not need to do so. The compiler generally only assumes that `sp` is valid when compiled code begins.
+
 ## Block diagram
 
 ![PicoRV32 RV32I block diagram](picorv32-block-diagram.svg)
@@ -118,7 +138,9 @@ Status:
 
 We will grow this section as we move downward through `picorv32.v`. The order below follows the upstream source rather than grouping topics by ISA instruction.
 
-### 0. File setup and core boundary — TODO
+### 0. File setup and core boundary — IN PROGRESS
+
+S01 completed the module parameter list through study RTL line 87. S02 resumes at the module port list.
 
 Document:
 
