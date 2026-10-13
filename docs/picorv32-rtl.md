@@ -8,6 +8,12 @@ The repository carries PicoRV32 from upstream commit `ef203c2b0a3fb793280f511494
 
 The configured study core is **RV32I**: compressed instructions, multiply/divide and PCPI are disabled in the shared testbench.
 
+## Block diagram
+
+![PicoRV32 RV32I block diagram](picorv32-block-diagram.svg)
+
+The diagram is derived from the RTL and shows the current RV32I study configuration. It is a living architectural view: as the source-order walkthrough exposes more precise boundaries or control relationships, update the SVG rather than treating it as an upstream specification.
+
 ## Goal: reconstruct an implementable RV32I core
 
 Read `picorv32.v` **in RTL source order** and turn it into a compact implementation specification.
