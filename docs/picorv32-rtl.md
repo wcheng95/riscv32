@@ -19,8 +19,8 @@ Use the study RTL for the relaxed source-order walkthrough, and cross-check any 
 
 ### S01 — module parameters — DONE
 
-**Study RTL:** through line 87  
-**Next:** line 88, module port list
+**Study RTL:** through line 88  
+**Next:** line 89, module port list
 
 What we settled:
 
@@ -140,7 +140,7 @@ We will grow this section as we move downward through `picorv32.v`. The order be
 
 ### 0. File setup and core boundary — IN PROGRESS
 
-S01 completed the module parameter list through study RTL line 87. S02 resumes at the module port list.
+S01 completed the module parameter list through study RTL line 88. S02 resumes at the module port list.
 
 Document:
 
