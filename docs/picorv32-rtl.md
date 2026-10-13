@@ -6,14 +6,80 @@ The goal is **understanding**, not finishing a syllabus and not modifying the co
 
 The repository carries PicoRV32 from upstream commit `ef203c2b0a3fb793280f5114941416c425c5b461`. Keep `picorv32/picorv32.v` unmodified and record observations here.
 
-## How to use this track
+The configured study core is **RV32I**: compressed instructions, multiply/divide and PCPI are disabled in the shared testbench.
 
-- Read one small RTL region at a time.
-- Start from a concrete question instead of trying to read the file linearly.
-- Follow signals only as far as needed to answer that question.
-- Prefer a tiny simulation or existing bus trace when behavior is easier to see than infer.
-- Distinguish standard RISC-V behavior from PicoRV32 implementation choices.
-- No schedule, no completion target, and no requirement to follow the topics below in order.
+## Method
+
+Use the RV32I instruction set itself as the reading checklist.
+
+For each instruction, do not mark it checked merely because a test program executes it. A useful RTL check should identify, as applicable:
+
+1. decode condition,
+2. immediate/source-register path,
+3. ALU / branch / memory action,
+4. destination-register writeback or PC update,
+5. any PicoRV32-specific multi-cycle/control behavior.
+
+Keep each investigation small. Similar instructions may share most of the same RTL, but each row should still be accounted for.
+
+## RV32I instruction checklist
+
+This table intentionally contains **only real RV32I instructions**.
+
+Excluded:
+- pseudoinstructions such as `nop`, `mv`, `li`, `ret`
+- M-extension multiply/divide instructions
+- C compressed instructions
+- CSR instructions from the separate Zicsr extension
+- `FENCE.I`, which belongs to the separate Zifencei extension
+
+Status:
+- `TODO` — not yet traced
+- `CHECKED` — decode through architectural effect understood
+- `NOTE` — behavior understood but deserves a follow-up detail
+
+| # | Instruction | Class | Architectural effect | RTL status | RTL notes |
+|---:|---|---|---|---|---|
+| 1 | `LUI rd, imm` | U | `rd = imm << 12` | TODO | |
+| 2 | `AUIPC rd, imm` | U | `rd = pc + (imm << 12)` | TODO | |
+| 3 | `JAL rd, off` | J | `rd = pc+4; pc += off` | TODO | |
+| 4 | `JALR rd, rs1, imm` | I | `rd = pc+4; pc = (rs1+imm) & ~1` | TODO | |
+| 5 | `BEQ rs1, rs2, off` | B | branch if `rs1 == rs2` | TODO | |
+| 6 | `BNE rs1, rs2, off` | B | branch if `rs1 != rs2` | TODO | |
+| 7 | `BLT rs1, rs2, off` | B | signed `rs1 < rs2` | TODO | |
+| 8 | `BGE rs1, rs2, off` | B | signed `rs1 >= rs2` | TODO | |
+| 9 | `BLTU rs1, rs2, off` | B | unsigned `rs1 < rs2` | TODO | |
+| 10 | `BGEU rs1, rs2, off` | B | unsigned `rs1 >= rs2` | TODO | |
+| 11 | `LB rd, imm(rs1)` | I/load | load byte, sign-extend | TODO | |
+| 12 | `LH rd, imm(rs1)` | I/load | load halfword, sign-extend | TODO | |
+| 13 | `LW rd, imm(rs1)` | I/load | load word | TODO | |
+| 14 | `LBU rd, imm(rs1)` | I/load | load byte, zero-extend | TODO | |
+| 15 | `LHU rd, imm(rs1)` | I/load | load halfword, zero-extend | TODO | |
+| 16 | `SB rs2, imm(rs1)` | S/store | store low byte | TODO | |
+| 17 | `SH rs2, imm(rs1)` | S/store | store low halfword | TODO | |
+| 18 | `SW rs2, imm(rs1)` | S/store | store word | TODO | |
+| 19 | `ADDI rd, rs1, imm` | I/ALU | `rd = rs1 + imm` | TODO | |
+| 20 | `SLTI rd, rs1, imm` | I/ALU | signed less-than immediate | TODO | |
+| 21 | `SLTIU rd, rs1, imm` | I/ALU | unsigned less-than immediate | TODO | |
+| 22 | `XORI rd, rs1, imm` | I/ALU | bitwise XOR immediate | TODO | |
+| 23 | `ORI rd, rs1, imm` | I/ALU | bitwise OR immediate | TODO | |
+| 24 | `ANDI rd, rs1, imm` | I/ALU | bitwise AND immediate | TODO | |
+| 25 | `SLLI rd, rs1, shamt` | I/shift | logical left shift | TODO | |
+| 26 | `SRLI rd, rs1, shamt` | I/shift | logical right shift | TODO | |
+| 27 | `SRAI rd, rs1, shamt` | I/shift | arithmetic right shift | TODO | |
+| 28 | `ADD rd, rs1, rs2` | R | `rd = rs1 + rs2` | TODO | |
+| 29 | `SUB rd, rs1, rs2` | R | `rd = rs1 - rs2` | TODO | |
+| 30 | `SLL rd, rs1, rs2` | R | logical left shift | TODO | |
+| 31 | `SLT rd, rs1, rs2` | R | signed less-than | TODO | |
+| 32 | `SLTU rd, rs1, rs2` | R | unsigned less-than | TODO | |
+| 33 | `XOR rd, rs1, rs2` | R | bitwise XOR | TODO | |
+| 34 | `SRL rd, rs1, rs2` | R | logical right shift | TODO | |
+| 35 | `SRA rd, rs1, rs2` | R | arithmetic right shift | TODO | |
+| 36 | `OR rd, rs1, rs2` | R | bitwise OR | TODO | |
+| 37 | `AND rd, rs1, rs2` | R | bitwise AND | TODO | |
+| 38 | `FENCE` | memory ordering | order memory/device accesses | TODO | |
+| 39 | `ECALL` | SYSTEM | environment call | TODO | |
+| 40 | `EBREAK` | SYSTEM | breakpoint request | TODO | |
 
 ## Source map
 
@@ -42,7 +108,6 @@ A useful first-pass map of `picorv32.v`:
    - instruction fields and immediate construction
    - instruction-class decode
    - illegal-instruction handling
-   - optional compressed-instruction path
 
 5. **Execution control**
    - CPU state machine
@@ -63,46 +128,33 @@ A useful first-pass map of `picorv32.v`:
    - write strobes
    - alignment checks
 
-8. **Optional machinery**
-   - PCPI multiply/divide
-   - PicoRV32 custom IRQ mechanism
-   - counters
-   - trace and formal/RVFI support
+8. **Other base behavior**
+   - `FENCE`
+   - `ECALL` / `EBREAK`
+   - counters and trap behavior where relevant
 
-## First questions worth asking
+## Per-instruction note format
 
-These are prompts, not assignments:
-
-- What exactly causes the PC to advance?
-- Where does an instruction become "decoded"?
-- How does the core wait when memory does not assert `mem_ready`?
-- Why are `reg_pc` and `reg_next_pc` both needed?
-- Where are rs1 and rs2 read, and when is rd written?
-- How is x0 prevented from behaving like an ordinary register?
-- How does an ADD travel through the control/state machine?
-- How does a taken branch differ from an ordinary ALU instruction?
-- How many cycles does a load require, and which part is core latency versus memory latency?
-- Which parts disappear when optional features are disabled?
-
-## Reading style
-
-For each topic, keep notes short:
+When a row is checked, add a short note below the table if useful:
 
 ```text
-Question
-What am I trying to understand?
+Instruction
+ADD
 
-RTL
-Which small block/signals answer it?
+Decode
+Which decode signal/condition identifies it?
 
-Mental model
-Describe the behavior in plain language.
+Operands
+Where do rs1 and rs2 come from?
 
-Evidence
-Optional simulation/trace/measurement.
+Execute
+Which ALU/control expression performs the operation?
 
-Open question
-Only if something remains unclear.
+Architectural effect
+Where/how is rd written or the PC/memory state changed?
+
+PicoRV32 detail
+Anything implementation-specific worth remembering?
 ```
 
-The notebook should grow from actual questions rather than attempting to document every line of PicoRV32.
+The notebook should grow from actual RTL questions rather than attempting to document every line of PicoRV32.
