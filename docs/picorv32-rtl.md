@@ -8,19 +8,39 @@ The repository carries PicoRV32 from upstream commit `ef203c2b0a3fb793280f511494
 
 The configured study core is **RV32I**: compressed instructions, multiply/divide and PCPI are disabled in the shared testbench.
 
-## Method
+## Goal: reconstruct an implementable RV32I core
 
-Use the RV32I instruction set itself as the reading checklist.
+Read `picorv32.v` **in RTL source order** and turn it into a compact implementation specification.
 
-For each instruction, do not mark it checked merely because a test program executes it. A useful RTL check should identify, as applicable:
+The intended end state is that these notes contain enough structure and behavior to write a small RV32I implementation without having to rediscover how the core fits together.
 
-1. decode condition,
-2. immediate/source-register path,
-3. ALU / branch / memory action,
-4. destination-register writeback or PC update,
-5. any PicoRV32-specific multi-cycle/control behavior.
+This is not a line-by-line translation of PicoRV32. For each RTL region, extract:
 
-Keep each investigation small. Similar instructions may share most of the same RTL, but each row should still be accounted for.
+1. **Purpose** — what hardware responsibility this block owns.
+2. **State** — registers/state variables that must survive a clock edge.
+3. **Inputs and outputs** — signals entering/leaving the block.
+4. **Combinational rules** — decisions that can be expressed without stored state.
+5. **Sequential rules** — what changes on each relevant clock edge.
+6. **Control transitions** — where the CPU/memory state machine goes next.
+7. **Instruction coverage** — which RV32I instructions depend on this block.
+8. **Implementation sketch** — short pseudocode or equations sufficient to rebuild the behavior.
+
+We follow physical RTL order even when that is not the easiest pedagogical order. This lets the document become a companion map to the actual source.
+
+Our implementation scope is the configuration used by the shared testbench:
+
+```text
+RV32I
+COMPRESSED_ISA = 0
+ENABLE_MUL     = 0
+ENABLE_DIV     = 0
+ENABLE_PCPI    = 0
+ENABLE_IRQ     = 0
+```
+
+When the upstream RTL reaches C, M, PCPI, IRQ, trace, or formal-only machinery, record its boundary and skip the internal details unless they affect the RV32I path.
+
+The RV32I instruction table below is therefore a **coverage index**, not the reading order. An instruction becomes `CHECKED` only when the source-ordered walkthrough has exposed its complete path from decode to architectural effect.
 
 ## RV32I instruction checklist
 
@@ -81,9 +101,131 @@ Status:
 | 39 | `ECALL` | SYSTEM | environment call | TODO | |
 | 40 | `EBREAK` | SYSTEM | breakpoint request | TODO | |
 
+## RTL-order walkthrough
+
+We will grow this section as we move downward through `picorv32.v`. The order below follows the upstream source rather than grouping topics by ISA instruction.
+
+### 0. File setup and core boundary — TODO
+
+Document:
+
+- preprocessor/debug/formal macros relevant to understanding the source
+- `picorv32` module parameters
+- top-level memory interface
+- look-ahead memory interface
+- optional PCPI/IRQ/RVFI/trace interfaces
+- which parameters are fixed for our RV32I implementation
+
+Implementation result: define the external contract of our future core before implementing any internals.
+
+### 1. Core state and register file — TODO
+
+Document:
+
+- cycle/instruction counters
+- `reg_pc`, `reg_next_pc`
+- `reg_op1`, `reg_op2`, `reg_out`, `reg_sh`
+- integer register file `cpuregs`
+- x0 handling
+- state needed only by excluded optional features
+
+Implementation result: define the persistent datapath state.
+
+### 2. Optional PCPI multiply/divide plumbing — OUT OF SCOPE
+
+The upstream source encounters this before the memory interface. Record where it connects to the base core, but our RV32I implementation does not need the internal multiplier/divider/PCPI machinery.
+
+### 3. Memory interface — TODO
+
+This is the first substantial base-RV32I subsystem in source order.
+
+Document:
+
+- `mem_state`
+- `mem_do_prefetch`, `mem_do_rinst`, `mem_do_rdata`, `mem_do_wdata`
+- `mem_valid/mem_ready` transaction lifecycle
+- instruction versus data transactions
+- `mem_wordsize`
+- byte/halfword/word lane selection
+- load-data extraction
+- store-data replication and write strobes
+- look-ahead interface versus committed memory request
+- which compressed-instruction paths disappear when `COMPRESSED_ISA=0`
+
+Implementation result: enough detail to build the CPU's fetch/load/store bus controller independently.
+
+### 4. Instruction decoder — TODO
+
+Document in the exact order the RTL introduces and computes decode state:
+
+- individual `instr_*` flags
+- grouped `is_*` flags
+- `decoded_rd`, `decoded_rs1`, `decoded_rs2`
+- immediate generation
+- decode trigger/latching behavior
+- illegal-instruction detection
+- instruction families sharing datapath/control logic
+
+Implementation result: a decoder specification that maps a 32-bit RV32I instruction to operands, immediate, destination and control class.
+
+### 5. Debug/decode bookkeeping — TODO / mostly nonessential
+
+Separate implementation-essential decode state from source-only debug/trace helpers. Our own core should not inherit machinery merely because it appears in the reference source.
+
+### 6. Datapath helpers, register access and ALU — TODO
+
+Document:
+
+- register-file read addresses/data
+- writeback enable/address/data
+- x0 suppression
+- ALU input selection
+- ADD/SUB/logic/compare operations
+- signed versus unsigned compare
+- barrel versus iterative shift behavior, retaining only the configuration we choose
+
+Implementation result: reconstruct the integer datapath independently of the main control FSM.
+
+### 7. Main CPU control state machine — TODO
+
+Document each state in source order, including at least:
+
+```text
+FETCH
+LD_RS1
+LD_RS2
+EXEC
+SHIFT
+STMEM
+LDMEM
+TRAP
+```
+
+For every state record:
+
+- entry condition
+- state-owned actions
+- memory request started/completed
+- register values latched
+- next state
+- architectural effect, if any
+
+Implementation result: this becomes the central control specification for our own multi-cycle RV32I core.
+
+### 8. Misalignment, trap and excluded optional tail logic — TODO
+
+Document only the parts needed for the selected RV32I behavior:
+
+- misaligned instruction/data detection
+- illegal instruction behavior
+- `ECALL` / `EBREAK`
+- base trap behavior
+
+Mark IRQ, RVFI and formal-verification machinery as reference/support logic rather than required datapath/control logic.
+
 ## Source map
 
-A useful first-pass map of `picorv32.v`:
+A useful conceptual map of `picorv32.v`:
 
 1. **Configuration and top-level interface**
    - feature parameters
