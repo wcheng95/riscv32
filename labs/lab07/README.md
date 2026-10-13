@@ -60,4 +60,23 @@ The current RAM model has a registered baseline response. `WAIT=N` adds N more c
 
 ## Completion
 
-Mac mini execution pending. Record the observed counter values and any surprising behavior here, not in the root README.
+**PASS — both configurations validated on Mac mini.**
+
+## Observed results (2026-10-12)
+
+| Measurement | WAIT=0 | WAIT=3 |
+| --- | ---: | ---: |
+| Final x1 | 5 | 5 |
+| cycle_delta | 73 | 130 |
+| instret_delta | 16 | 16 |
+| Average interval CPI | 4.5625 | 8.125 |
+| Simulation cycles | 118 | 211 |
+
+The measured interval gains 57 cycles due to extra RAM waiting, while retiring the same 16 instructions. The full simulation gains 93 cycles because it also includes memory accesses and activity outside the measured interval.
+
+### Fetch does not equal retirement
+
+The WAIT=0 bus trace repeatedly shows `IFETCH 0x20` after the taken `bne` at `0x1c`, before control returns to `0x14`. That prefetched counter instruction must not be counted as a retired instruction. Use the `instret` counter for this purpose.
+
+The `cycle` and `instret` snapshots include read/measurement placement effects. CPI here is an interval average, not a separately calibrated per-opcode cost.
+
