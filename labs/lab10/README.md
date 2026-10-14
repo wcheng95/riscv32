@@ -73,7 +73,17 @@ Inspect `irq[3]`, `eoi[3]`, `mem_instr`, `mem_valid`, `mem_ready`, `mem_addr`, a
 
 ## Completion
 
-Implementation committed. Functional validation on Mac mini pending. Record actual results here, not in the root README.
+**PASS — Mac mini functional validation completed (2026-10-14).**
+
+```text
+STORE 0 addr=00001000 data=00000000
+STORE 1 addr=00001000 data=000000a5
+STORE 2 addr=00001004 data=0000005a
+PASS: Lab10 IRQ3 acknowledged, handler returned cycles=103
+```
+
+The test confirms initialization before enabling IRQ3, execution of the handler, observation of EOI, return to the main program, and the final result. Total elapsed testbench time: 103 cycles. This does not measure isolated IRQ entry/exit latency; the bus trace and VCD can be used for that follow-up. The implementation uses PicoRV32's **custom** IRQ machinery, not standard RISC-V Machine-mode traps.
+
 
 ## Initialization note
 
