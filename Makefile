@@ -7,8 +7,8 @@ OBJCOPY = $(RISCV_PREFIX)objcopy
 OBJDUMP = $(RISCV_PREFIX)objdump
 
 LAB ?= lab00
-ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06 lab07 lab08),)
-$(error Unsupported LAB=$(LAB); choose lab00 through lab08)
+ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06 lab07 lab08 lab09),)
+$(error Unsupported LAB=$(LAB); choose lab00 through lab09)
 endif
 
 TOP = riscv32_tb
@@ -28,10 +28,18 @@ WORDS_lab05 = 19
 WORDS_lab06 = 7
 WORDS_lab07 = 16
 WORDS_lab08 = 10
+WORDS_lab09 = 2
+CASE ?= illegal
+ifeq ($(LAB),lab09)
+ifneq ($(filter $(CASE),illegal misalign),$(CASE))
+$(error CASE must be illegal or misalign)
+endif
+RUN_ARGS = +lab=$(LAB_ID) +hex=build/lab09_$(CASE).hex +words=$(if $(filter misalign,$(CASE)),3,2) +wait=$(WAIT)
+else
+RUN_ARGS = +lab=$(LAB_ID) +hex=build/$(LAB).hex +words=$(WORDS) +wait=$(WAIT)
+endif
 WORDS = $(WORDS_$(LAB))
 WAIT ?= 0
-RUN_ARGS = +lab=$(LAB_ID) +hex=build/$(LAB).hex +words=$(WORDS) +wait=$(WAIT)
-
 ASFLAGS = -march=rv32i -mabi=ilp32 -mno-relax -nostdlib -nostartfiles -Wl,-T,labs/common/link.ld -Wl,--build-id=none
 
 .PHONY: all test trace wave disasm clean toolchain-check test-all
@@ -67,17 +75,33 @@ build/lab07.elf: labs/lab07/lab07.S labs/common/link.ld | build
 build/lab08.elf: labs/lab08/lab08.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
+build/lab09_illegal.elf: labs/lab09/illegal.S labs/common/link.ld | build
+	$(CC) $(ASFLAGS) -o $@ $<
+
+build/lab09_misalign.elf: labs/lab09/misalign.S labs/common/link.ld | build
+	$(CC) $(ASFLAGS) -o $@ $<
+
 build/%.bin: build/%.elf
 	$(OBJCOPY) -O binary -j .text $< $@
 
 build/%.hex: build/%.bin tools/bin2hex.py
 	$(PYTHON) tools/bin2hex.py $< $@
 
-$(SIM): build/$(LAB).hex $(SRC) | build
+ifeq ($(LAB),lab09)
+FIRMWARE = build/lab09_illegal.hex build/lab09_misalign.hex
+else
+FIRMWARE = build/$(LAB).hex
+endif
+$(SIM): $(FIRMWARE) $(SRC) | build
 	$(IVERILOG) -g2012 -s $(TOP) -P$(TOP).REG_DUALPORT=$(REGS) -o $@ $(SRC)
 
 test: $(SIM)
+ifeq ($(LAB),lab09)
+	$(VVP) $(SIM) +lab=09 +hex=build/lab09_illegal.hex +words=2 +wait=$(WAIT) +trace
+	$(VVP) $(SIM) +lab=09 +hex=build/lab09_misalign.hex +words=3 +wait=$(WAIT) +trace
+else
 	$(VVP) $(SIM) $(RUN_ARGS) +trace
+endif
 	@echo "Trace: build/bus.trace"
 
 trace: $(SIM)
@@ -95,6 +119,7 @@ test-all:
 	$(MAKE) test LAB=lab07
 	$(MAKE) test LAB=lab08 REGS=1
 	$(MAKE) test LAB=lab08 REGS=0
+	$(MAKE) test LAB=lab09
 
 wave: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
