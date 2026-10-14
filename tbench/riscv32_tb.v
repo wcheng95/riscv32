@@ -18,6 +18,7 @@ module riscv32_tb #(
     picorv32 #(
         .COMPRESSED_ISA(0), .ENABLE_MUL(0), .ENABLE_DIV(0),
         .ENABLE_REGS_DUALPORT(REG_DUALPORT),
+        .CATCH_MISALIGN(1), .CATCH_ILLINSN(1),
         .ENABLE_PCPI(0), .ENABLE_IRQ(0), .PROGADDR_RESET(32'h0)
     ) cpu (
         .clk(clk), .resetn(resetn), .trap(trap),
@@ -43,8 +44,8 @@ module riscv32_tb #(
     );
 
     initial begin
-        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 8))
-            $fatal(1, "Use +lab=0 through 8");
+        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 9))
+            $fatal(1, "Use +lab=0 through 9");
         if (lab == 0) begin
             expected_stores = 1;
             expected[0] = 12;
@@ -86,10 +87,12 @@ module riscv32_tb #(
         end else if (lab == 7) begin
             expected_stores = 3;
             expected[0] = 5;
-        end else begin
+        end else if (lab == 8) begin
             expected_stores = 2;
             expected[0] = 17;
             expected[1] = 337;
+        end else begin
+            expected_stores = 0;
         end
         repeat (10) @(negedge clk);
         resetn = 1;
@@ -105,7 +108,8 @@ module riscv32_tb #(
             else if (lab == 5) $dumpfile("build/lab05.vcd");
             else if (lab == 6) $dumpfile("build/lab06.vcd");
             else if (lab == 7) $dumpfile("build/lab07.vcd");
-            else $dumpfile("build/lab08.vcd");
+            else if (lab == 8) $dumpfile("build/lab08.vcd");
+            else $dumpfile("build/lab09.vcd");
             $dumpvars(0, riscv32_tb);
         end
     end
@@ -157,8 +161,15 @@ module riscv32_tb #(
     always @(posedge clk) begin
         if (resetn) begin
             cycles <= cycles + 1;
-            if (trap) $fatal(1, "FAIL: unexpected CPU trap");
+            if (trap) begin
+                if (lab == 9) begin
+                    if (stores != 0) $fatal(1, "FAIL: store before expected trap");
+                    $display("PASS: Lab09 expected trap cycles=%0d", cycles);
+                    $finish;
+                end else $fatal(1, "FAIL: unexpected CPU trap");
+            end
             if (completed) begin
+                if (lab == 9) $fatal(1, "FAIL: Lab09 completed without trap");
                 for (i=0; i<(lab == 4 ? 5 : (lab == 7 ? 1 : expected_stores)); i=i+1)
                     if (main_ram.memory[1024+i] !== expected[i])
                         $fatal(1, "FAIL: RAM[%0d] got %08x expected %08x",
