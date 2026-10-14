@@ -39,4 +39,19 @@ make wave LAB=lab09 CASE=misalign
 
 ## Completion
 
-Implementation prepared; expected-trap results must be verified on Mac mini before marking complete.
+**PASS — both expected-trap cases validated on Mac mini.**
+
+## Observed results (2026-10-13)
+
+```text
+illegal.S:
+PASS: Lab09 expected trap cycles=7
+
+misalign.S:
+PASS: Lab09 expected trap cycles=14
+```
+
+These are elapsed testbench cycles to the expected trap assertion, not individual instruction CPI values. The illegal opcode is detected after fetch/decode; the misaligned-load program first constructs address 0x1000 and then attempts a word load at 0x1002. No normal completion or expected data-store result is required for these cases.
+
+Both cases used the unmodified PicoRV32 RTL with `CATCH_ILLINSN=1` and `CATCH_MISALIGN=1`. The shared testbench intentionally treats the `trap` assertion as success only for Lab09. Waveform inspection remains optional.
+
