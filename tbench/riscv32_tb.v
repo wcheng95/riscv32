@@ -104,9 +104,10 @@ module riscv32_tb #(
         end else if (lab == 9) begin
             expected_stores = 0;
         end else begin
-            expected_stores = 2;
-            expected[0] = 32'ha5;
-            expected[1] = 32'h5a;
+            expected_stores = 3;
+            expected[0] = 0;
+            expected[1] = 32'ha5;
+            expected[2] = 32'h5a;
         end
         repeat (10) @(negedge clk);
         resetn = 1;
@@ -146,7 +147,9 @@ module riscv32_tb #(
                 fetches <= fetches + 1;
             end
             if (|mem_wstrb) begin
-                if (lab == 4 && stores >= 5)
+                if (lab == 10)
+                    expected_addr = stores < 2 ? 32'h1000 : 32'h1004;
+                else if (lab == 4 && stores >= 5)
                     expected_addr = (stores == 7) ? 32'h1018 : 32'h1014;
                 else
                     expected_addr = 32'h1000 + stores * 4;
@@ -159,7 +162,7 @@ module riscv32_tb #(
                     (lab == 6 && stores >= 2) ||
                     (lab == 7 && stores >= 3) ||
                     (lab == 8 && stores >= 2) ||
-                    (lab == 10 && stores >= 2) ||
+                    (lab == 10 && stores >= 3) ||
                     mem_addr !== expected_addr ||
                     (lab == 4 && stores == 5
                       ? (mem_wstrb !== 4'b0010 || mem_wdata[15:8] !== 8'h01)
@@ -194,10 +197,13 @@ module riscv32_tb #(
             end
             if (completed) begin
                 if (lab == 9) $fatal(1, "FAIL: Lab09 completed without trap");
-                for (i=0; i<(lab == 4 ? 5 : (lab == 7 ? 1 : expected_stores)); i=i+1)
+                for (i=0; i<(lab == 4 ? 5 : (lab == 7 ? 1 : (lab == 10 ? 0 : expected_stores))); i=i+1)
                     if (main_ram.memory[1024+i] !== expected[i])
                         $fatal(1, "FAIL: RAM[%0d] got %08x expected %08x",
                                i, main_ram.memory[1024+i], expected[i]);
+                if (lab == 10 && (main_ram.memory[1024] !== 32'ha5 ||
+                                  main_ram.memory[1025] !== 32'h5a))
+                    $fatal(1, "FAIL: Lab10 final marker or resume result");
                 if (lab == 4 && (main_ram.memory[1029] !== 32'h7f010113 ||
                                  main_ram.memory[1030] !== 32'h7f010113))
                     $fatal(1, "FAIL: Lab04 byte lanes / reloaded word");
@@ -221,8 +227,13 @@ module riscv32_tb #(
                     if (main_ram.memory[1025] <= main_ram.memory[1026])
                         $fatal(1, "FAIL: measured cycles must exceed retired instructions");
                     $display("PASS: Lab07 cycle_delta=%0d instret_delta=%0d simulation_cycles=%0d", main_ram.memory[1025], main_ram.memory[1026], cycles);
-                end else
+                end else if (lab == 8)
                     $display("PASS: Lab08 regs_dualport=%0d result=337 simulation_cycles=%0d", REG_DUALPORT, cycles);
+                else if (lab == 10) begin
+                    if (!irq_ack_seen || !irq_handler_seen || eoi[3])
+                        $fatal(1, "FAIL: IRQ acknowledgment, handler fetch or return missing");
+                    $display("PASS: Lab10 IRQ3 acknowledged, handler returned cycles=%0d", cycles);
+                end
                 $finish;
             end
             if (cycles > 500) $fatal(1, "FAIL: timeout");
