@@ -7,8 +7,8 @@ OBJCOPY = $(RISCV_PREFIX)objcopy
 OBJDUMP = $(RISCV_PREFIX)objdump
 
 LAB ?= lab00
-ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06 lab07 lab08 lab09),)
-$(error Unsupported LAB=$(LAB); choose lab00 through lab09)
+ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06 lab07 lab08 lab09 lab10),)
+$(error Unsupported LAB=$(LAB); choose lab00 through lab10)
 endif
 
 TOP = riscv32_tb
@@ -16,8 +16,9 @@ REGS ?= 1
 ifneq ($(filter $(REGS),0 1),$(REGS))
 $(error REGS must be 0 or 1)
 endif
+IRQ_ENABLE = $(if $(filter lab10,$(LAB)),1,0)
 SIM = build/$(LAB)_regs$(REGS).vvp
-SRC = tbench/riscv32_tb.v tbench/ram.v tbench/bus_trace.v picorv32/picorv32.v
+SRC = tbench/riscv32_tb.v tbench/ram.v tbench/bus_trace.v tbench/irq_source.v picorv32/picorv32.v
 LAB_ID = $(patsubst lab%,%,$(LAB))
 WORDS_lab00 = 6
 WORDS_lab01 = 10
@@ -29,6 +30,7 @@ WORDS_lab06 = 7
 WORDS_lab07 = 16
 WORDS_lab08 = 10
 WORDS_lab09 = 2
+WORDS_lab10 = 36
 CASE ?= illegal
 ifeq ($(LAB),lab09)
 ifneq ($(filter $(CASE),illegal misalign),$(CASE))
@@ -75,6 +77,9 @@ build/lab07.elf: labs/lab07/lab07.S labs/common/link.ld | build
 build/lab08.elf: labs/lab08/lab08.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
+build/lab10.elf: labs/lab10/lab10.S labs/common/link.ld | build
+	$(CC) $(ASFLAGS) -o $@ $<
+
 build/lab09_illegal.elf: labs/lab09/illegal.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
@@ -93,7 +98,7 @@ else
 FIRMWARE = build/$(LAB).hex
 endif
 $(SIM): $(FIRMWARE) $(SRC) | build
-	$(IVERILOG) -g2012 -s $(TOP) -P$(TOP).REG_DUALPORT=$(REGS) -o $@ $(SRC)
+	$(IVERILOG) -g2012 -s $(TOP) -P$(TOP).REG_DUALPORT=$(REGS) -P$(TOP).IRQ_ENABLED=$(IRQ_ENABLE) -o $@ $(SRC)
 
 test: $(SIM)
 ifeq ($(LAB),lab09)
@@ -120,6 +125,7 @@ test-all:
 	$(MAKE) test LAB=lab08 REGS=1
 	$(MAKE) test LAB=lab08 REGS=0
 	$(MAKE) test LAB=lab09
+	$(MAKE) test LAB=lab10
 
 wave: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
