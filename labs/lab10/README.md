@@ -1,0 +1,74 @@
+# Lab10 — PicoRV32 External Interrupt and Return
+
+## Goal
+
+Observe a complete external interrupt lifecycle: `irq[3]` asserted, CPU acknowledgment via `eoi[3]`, handler entry at `PROGADDR_IRQ=0x80`, then `retirq` and continued execution of the interrupted program.
+
+**Important:** PicoRV32 implements custom interrupt instructions, not standard RISC-V machine-mode `mtvec`, `mepc`, `mstatus` or `mret`.
+
+## CPU configuration
+
+The shared simulation top-level enables interrupts only for Lab10 using the RTL elaboration parameter `IRQ_ENABLED=1` (mapped to `ENABLE_IRQ`). The internal IRQ timer is disabled. All other labs continue with interrupts disabled. Upstream PicoRV32 RTL is unchanged.
+
+```text
+tbench/irq_source.v    one-cycle pulse on irq[3]
+tbench/riscv32_tb.v    CPU, ROM/RAM bus, result checks, EOI observation
+tbench/ram.v           shared memory model
+tbench/bus_trace.v     passive completed memory transactions
+```
+
+The small `irq_source` module is independent of any specific lab number: `enable` comes from the testbench.
+
+## Firmware
+
+Source: [lab10.S](lab10.S).
+
+- First mask all IRQs except IRQ3 with `maskirq x0,x5`, setting mask `0xfffffff7` (0 = unmasked).
+- Poll RAM[0x1000] for marker `0xa5`.
+- At `0x80`, the IRQ handler stores `0xa5` at RAM[0x1000] and executes `retirq`.
+- The interrupted code resumes, detects the marker, and writes `0x5a` at RAM[0x1004].
+
+The two PicoRV32-specific instructions are inserted using `.word` because they are not part of standard RV32I GNU assembler mnemonics:
+
+```asm
+.word 0x0602800b   # maskirq x0,x5
+.word 0x0400000b   # retirq
+```
+
+These custom-0 instructions are documented in [the upstream PicoRV32 README](https://github.com/YosysHQ/picorv32#custom-instructions-for-irq-handling).
+
+## Run on Mac mini
+
+```sh
+git pull
+make test LAB=lab10
+make wave LAB=lab10
+cat build/bus.trace
+make disasm LAB=lab10
+```
+
+Expected memory writes:
+
+```text
+STORE 0 addr=00001000 data=000000a5
+STORE 1 addr=00001004 data=0000005a
+PASS: Lab10 IRQ3 acknowledged, handler returned cycles=...
+```
+
+The testbench additionally requires `eoi[3]` to have asserted, a completed handler instruction fetch at `0x80`, and `eoi[3]` to be deasserted after return. The test fails on an unexpected trap or timeout.
+
+## Waveform
+
+Inspect `irq[3]`, `eoi[3]`, `mem_instr`, `mem_valid`, `mem_ready`, `mem_addr`, and `trap`. The bus trace records only completed memory transfers, not `irq` or `eoi`; use VCD for those.
+
+## Questions
+
+1. Why does `maskirq` need to run before the external request?
+2. What does `eoi[3]` tell the external IRQ source?
+3. How is `retirq` different from `jalr` and standard RISC-V `mret`?
+4. Why does the handler need to preserve any general-purpose registers it changes in a real program?
+5. What can and cannot be inferred from seeing `IFETCH 0x80` in the memory trace?
+
+## Completion
+
+Implementation committed. Functional validation on Mac mini pending. Record actual results here, not in the root README.
