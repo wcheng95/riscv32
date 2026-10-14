@@ -2,12 +2,16 @@
 `timescale 1ns/1ps
 module riscv32_tb #(
     parameter integer REG_DUALPORT = 1,
-    parameter integer IRQ_ENABLED = 0
+    parameter integer IRQ_ENABLED = 0,
+    parameter integer PCPI_ENABLED = 0
 );
     reg clk = 0, resetn = 0;
     always #5 clk = ~clk;
     wire trap, mem_valid, mem_instr, mem_ready;
     wire [31:0] irq, eoi;
+    wire pcpi_valid, pcpi_wr, pcpi_wait, pcpi_ready;
+    wire [31:0] pcpi_insn, pcpi_rs1, pcpi_rs2, pcpi_rd;
+    reg pcpi_wait_seen = 0, pcpi_result_seen = 0;
     reg irq_ack_seen = 0;
     reg irq_handler_seen = 0;
     wire [31:0] mem_addr, mem_wdata, mem_rdata;
@@ -23,7 +27,7 @@ module riscv32_tb #(
         .COMPRESSED_ISA(0), .ENABLE_MUL(0), .ENABLE_DIV(0),
         .ENABLE_REGS_DUALPORT(REG_DUALPORT),
         .CATCH_MISALIGN(1), .CATCH_ILLINSN(1),
-        .ENABLE_PCPI(0), .ENABLE_IRQ(IRQ_ENABLED),
+        .ENABLE_PCPI(PCPI_ENABLED), .ENABLE_IRQ(IRQ_ENABLED),
         .ENABLE_IRQ_TIMER(0), .PROGADDR_IRQ(32'h80),
         .PROGADDR_RESET(32'h0)
     ) cpu (
@@ -31,12 +35,22 @@ module riscv32_tb #(
         .mem_valid(mem_valid), .mem_instr(mem_instr),
         .mem_ready(mem_ready), .mem_addr(mem_addr),
         .mem_wdata(mem_wdata), .mem_wstrb(mem_wstrb), .mem_rdata(mem_rdata),
-        .pcpi_wr(1'b0), .pcpi_rd(32'b0), .pcpi_wait(1'b0),
-        .pcpi_ready(1'b0), .irq(irq), .eoi(eoi)
+        .pcpi_valid(pcpi_valid), .pcpi_insn(pcpi_insn),
+        .pcpi_rs1(pcpi_rs1), .pcpi_rs2(pcpi_rs2),
+        .pcpi_wr(pcpi_wr), .pcpi_rd(pcpi_rd), .pcpi_wait(pcpi_wait),
+        .pcpi_ready(pcpi_ready), .irq(irq), .eoi(eoi)
     );
 
     irq_source external_irq (
         .clk(clk), .resetn(resetn), .enable(lab == 10), .irq(irq)
+    );
+
+    pcpi_demo coprocessor (
+        .clk(clk), .resetn(resetn),
+        .pcpi_valid(pcpi_valid), .pcpi_insn(pcpi_insn),
+        .pcpi_rs1(pcpi_rs1), .pcpi_rs2(pcpi_rs2),
+        .pcpi_wait(pcpi_wait), .pcpi_ready(pcpi_ready),
+        .pcpi_wr(pcpi_wr), .pcpi_rd(pcpi_rd)
     );
 
     ram main_ram (
@@ -54,8 +68,8 @@ module riscv32_tb #(
     );
 
     initial begin
-        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 10))
-            $fatal(1, "Use +lab=0 through 10");
+        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 11))
+            $fatal(1, "Use +lab=0 through 11");
         if (lab == 0) begin
             expected_stores = 1;
             expected[0] = 12;
@@ -103,11 +117,15 @@ module riscv32_tb #(
             expected[1] = 337;
         end else if (lab == 9) begin
             expected_stores = 0;
-        end else begin
+        end else if (lab == 10) begin
             expected_stores = 3;
             expected[0] = 0;
             expected[1] = 32'ha5;
             expected[2] = 32'h5a;
+        end else begin
+            expected_stores = 2;
+            expected[0] = 13;
+            expected[1] = 14;
         end
         repeat (10) @(negedge clk);
         resetn = 1;
@@ -125,7 +143,8 @@ module riscv32_tb #(
             else if (lab == 7) $dumpfile("build/lab07.vcd");
             else if (lab == 8) $dumpfile("build/lab08.vcd");
             else if (lab == 9) $dumpfile("build/lab09.vcd");
-            else $dumpfile("build/lab10.vcd");
+            else if (lab == 10) $dumpfile("build/lab10.vcd");
+            else $dumpfile("build/lab11.vcd");
             $dumpvars(0, riscv32_tb);
         end
     end
@@ -135,6 +154,16 @@ module riscv32_tb #(
             if (eoi[3]) irq_ack_seen <= 1;
             if (mem_valid && mem_ready && mem_instr && mem_addr == 32'h80)
                 irq_handler_seen <= 1;
+        end
+    end
+
+    always @(posedge clk) begin
+        if (resetn && lab == 11) begin
+            if (pcpi_valid && pcpi_wait) pcpi_wait_seen <= 1;
+            if (pcpi_valid && pcpi_ready && pcpi_wr &&
+                pcpi_insn == 32'h0020818b && pcpi_rs1 == 5 &&
+                pcpi_rs2 == 7 && pcpi_rd == 13)
+                pcpi_result_seen <= 1;
         end
     end
 
@@ -163,6 +192,7 @@ module riscv32_tb #(
                     (lab == 7 && stores >= 3) ||
                     (lab == 8 && stores >= 2) ||
                     (lab == 10 && stores >= 3) ||
+                    (lab == 11 && stores >= 2) ||
                     mem_addr !== expected_addr ||
                     (lab == 4 && stores == 5
                       ? (mem_wstrb !== 4'b0010 || mem_wdata[15:8] !== 8'h01)
@@ -233,6 +263,10 @@ module riscv32_tb #(
                     if (!irq_ack_seen || !irq_handler_seen || eoi[3])
                         $fatal(1, "FAIL: IRQ acknowledgment, handler fetch or return missing");
                     $display("PASS: Lab10 IRQ3 acknowledged, handler returned cycles=%0d", cycles);
+                end else if (lab == 11) begin
+                    if (!pcpi_wait_seen || !pcpi_result_seen)
+                        $fatal(1, "FAIL: missing PCPI wait or result handshake");
+                    $display("PASS: Lab11 PCPI custom op result=13,14 cycles=%0d", cycles);
                 end
                 $finish;
             end
