@@ -1,6 +1,8 @@
 // Shared PicoRV32 simulation machine for all early RV32I labs.
 `timescale 1ns/1ps
-module riscv32_tb;
+module riscv32_tb #(
+    parameter integer REG_DUALPORT = 1
+);
     reg clk = 0, resetn = 0;
     always #5 clk = ~clk;
     wire trap, mem_valid, mem_instr, mem_ready;
@@ -15,6 +17,7 @@ module riscv32_tb;
 
     picorv32 #(
         .COMPRESSED_ISA(0), .ENABLE_MUL(0), .ENABLE_DIV(0),
+        .ENABLE_REGS_DUALPORT(REG_DUALPORT),
         .ENABLE_PCPI(0), .ENABLE_IRQ(0), .PROGADDR_RESET(32'h0)
     ) cpu (
         .clk(clk), .resetn(resetn), .trap(trap),
@@ -40,8 +43,8 @@ module riscv32_tb;
     );
 
     initial begin
-        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 7))
-            $fatal(1, "Use +lab=0 through 7");
+        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 8))
+            $fatal(1, "Use +lab=0 through 8");
         if (lab == 0) begin
             expected_stores = 1;
             expected[0] = 12;
@@ -80,9 +83,13 @@ module riscv32_tb;
             expected_stores = 2;
             expected[0] = 42;
             expected[1] = 43;
-        end else begin
+        end else if (lab == 7) begin
             expected_stores = 3;
             expected[0] = 5;
+        end else begin
+            expected_stores = 2;
+            expected[0] = 17;
+            expected[1] = 337;
         end
         repeat (10) @(negedge clk);
         resetn = 1;
@@ -97,7 +104,8 @@ module riscv32_tb;
             else if (lab == 4) $dumpfile("build/lab04.vcd");
             else if (lab == 5) $dumpfile("build/lab05.vcd");
             else if (lab == 6) $dumpfile("build/lab06.vcd");
-            else $dumpfile("build/lab07.vcd");
+            else if (lab == 7) $dumpfile("build/lab07.vcd");
+            else $dumpfile("build/lab08.vcd");
             $dumpvars(0, riscv32_tb);
         end
     end
@@ -123,6 +131,7 @@ module riscv32_tb;
                     (lab == 5 && stores >= 4) ||
                     (lab == 6 && stores >= 2) ||
                     (lab == 7 && stores >= 3) ||
+                    (lab == 8 && stores >= 2) ||
                     mem_addr !== expected_addr ||
                     (lab == 4 && stores == 5
                       ? (mem_wstrb !== 4'b0010 || mem_wdata[15:8] !== 8'h01)
@@ -173,11 +182,12 @@ module riscv32_tb;
                     $display("PASS: Lab05 branches JAL JALR cycles=%0d", cycles);
                 else if (lab == 6)
                     $display("PASS: Lab06 memory wait-state handshake cycles=%0d", cycles);
-                else begin
+                else if (lab == 7) begin
                     if (main_ram.memory[1025] <= main_ram.memory[1026])
                         $fatal(1, "FAIL: measured cycles must exceed retired instructions");
                     $display("PASS: Lab07 cycle_delta=%0d instret_delta=%0d simulation_cycles=%0d", main_ram.memory[1025], main_ram.memory[1026], cycles);
-                end
+                end else
+                    $display("PASS: Lab08 regs_dualport=%0d result=337 simulation_cycles=%0d", REG_DUALPORT, cycles);
                 $finish;
             end
             if (cycles > 500) $fatal(1, "FAIL: timeout");
