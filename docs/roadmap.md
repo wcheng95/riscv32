@@ -16,8 +16,8 @@ This document owns the lab sequence and scope. Keep progress and measured result
 | 09 | Traps | Illegal opcode and misaligned load; terminal trap output |
 | **10** | **Interrupts** | Custom PicoRV32 IRQ/EOI, masking, entry and return |
 | **11** | **PCPI** | External coprocessor handshake and a small example operation |
-| 12 | Optional ISA extensions | RV32M and RV32C configuration experiments if useful |
-| 13 | Compiler and ABI | Tiny C code, arguments, stack, return values, optimization |
+| 12 | Skipped | RV32M/RV32C experiments intentionally omitted; no implementation planned |
+| **13 (next after 11)** | **Compiler and ABI** | Tiny C code, arguments, stack, return values, optimization |
 
 ## Lab design rules
 
@@ -32,3 +32,7 @@ This document owns the lab sequence and scope. Keep progress and measured result
 ## Later comparison
 
 After the RISC-V survey, return to [cisc68k Lab12](https://github.com/wcheng95/cisc68k/blob/main/docs/roadmap.md) for an evidence-based CISC-versus-RISC comparison.
+
+## Sequence decision (2026-10-14)
+
+Finish Lab11 PCPI, skip Lab12's optional RV32M/RV32C extensions, then proceed directly to Lab13 (C compiler/ABI). Lab10 functional test passed; its waveform inspection remains an optional follow-up.
