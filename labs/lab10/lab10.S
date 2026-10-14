@@ -2,6 +2,7 @@
 .globl _start
 _start:
     lui  x4, 0x1
+    sw   x0, 0(x4)         # initialize marker before enabling IRQ3
     addi x5, x0, -9         # 0xfffffff7: unmask IRQ3 only
     .word 0x0602800b       # maskirq x0,x5 (PicoRV32 custom instruction)
     addi x9, x0, 165
