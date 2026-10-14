@@ -61,4 +61,17 @@ The standard bus trace `build/bus.trace` is overwritten each run. The trace show
 
 ## Completion
 
-Implemented, pending two Mac mini simulation results. Record measurements here and keep the root README unchanged.
+**PASS — both configurations validated on Mac mini.**
+
+## Observed results
+
+| Measurement | Dual read ports (`REGS=1`) | Single read port (`REGS=0`) |
+| --- | ---: | ---: |
+| RAM[0x1000] | 17 | 17 |
+| RAM[0x1004] | 337 (`0x151`) | 337 (`0x151`) |
+| Testbench cycles | 49 | 50 |
+
+The single-port build required **one additional cycle** for this short program. This is a measured effect of the selected implementation and instruction mix, not a universal one-cycle penalty. Both builds use the same RV32I firmware, RAM timing (`WAIT=0`) and native bus.
+
+The test does **not** measure LUT count, chip area or timing closure; those require synthesis. Neither the CPU RTL nor the root README was changed.
+
