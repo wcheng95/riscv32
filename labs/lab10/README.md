@@ -23,7 +23,8 @@ The small `irq_source` module is independent of any specific lab number: `enable
 
 Source: [lab10.S](lab10.S).
 
-- First mask all IRQs except IRQ3 with `maskirq x0,x5`, setting mask `0xfffffff7` (0 = unmasked).
+- Initialize RAM[0x1000] to zero *before* allowing interrupts. This avoids depending on the RAM model's startup contents.
+- Then mask all IRQs except IRQ3 with `maskirq x0,x5`, setting mask `0xfffffff7` (0 = unmasked).
 - Poll RAM[0x1000] for marker `0xa5`.
 - At `0x80`, the IRQ handler stores `0xa5` at RAM[0x1000] and executes `retirq`.
 - The interrupted code resumes, detects the marker, and writes `0x5a` at RAM[0x1004].
@@ -50,12 +51,13 @@ make disasm LAB=lab10
 Expected memory writes:
 
 ```text
-STORE 0 addr=00001000 data=000000a5
-STORE 1 addr=00001004 data=0000005a
+STORE 0 addr=00001000 data=00000000
+STORE 1 addr=00001000 data=000000a5
+STORE 2 addr=00001004 data=0000005a
 PASS: Lab10 IRQ3 acknowledged, handler returned cycles=...
 ```
 
-The testbench additionally requires `eoi[3]` to have asserted, a completed handler instruction fetch at `0x80`, and `eoi[3]` to be deasserted after return. The test fails on an unexpected trap or timeout.
+The testbench checks all three stores in order, including the initialization and the final RAM marker values. It additionally requires `eoi[3]` to have asserted, a completed handler instruction fetch at `0x80`, and `eoi[3]` to be deasserted after return. The test fails on an unexpected trap or timeout.
 
 ## Waveform
 
@@ -72,3 +74,7 @@ Inspect `irq[3]`, `eoi[3]`, `mem_instr`, `mem_valid`, `mem_ready`, `mem_addr`, a
 ## Completion
 
 Implementation committed. Functional validation on Mac mini pending. Record actual results here, not in the root README.
+
+## Initialization note
+
+The shared RAM model currently initializes the result area with `0xdeadbeef`, which would already avoid an accidental equality with `0xa5`. Nevertheless, firmware owns its own shared state, so `sw x0,0(x4)` now initializes the polling flag explicitly before `maskirq`. This also keeps future RAM initialization changes from silently changing firmware behavior.
