@@ -35,6 +35,22 @@ What we settled:
 - Standard RISC-V ABI stack alignment is 16 bytes, so a compliant `sp` has `sp[3:0] == 4'b0000`. Alignment alone does not make an address usable; the stack must also have valid writable memory below it.
 - `STACKADDR` is mainly startup convenience: when supplied, hardware can initialize `sp` so startup software does not need to do so. The compiler generally only assumes that `sp` is valid when compiled code begins.
 
+### S02 — module ports and local parameters — DONE
+
+**Study RTL:** lines 89–173  
+**Next:** line 174
+
+What we settled:
+
+- The minimal RV32I implementation interface keeps `clk`, `resetn`, `trap`, and the normal memory bus signals: `mem_valid`, `mem_instr`, `mem_ready`, `mem_addr`, `mem_wdata`, `mem_wstrb`, and `mem_rdata`.
+- The look-ahead memory interface `mem_la_*` is a PicoRV32 optimization/interface convenience and is not required for the minimal implementation.
+- PCPI, IRQ/EOI, and trace ports are outside our stripped RV32I implementation scope.
+- `trap` is the core's terminal/fault indication in our minimal design.
+- Among the local parameters in this section, the two that matter to our implementation are:
+  - `regfile_size = 32`
+  - `regindex_bits = 5`
+- The remaining IRQ/trace/PCPI local parameters can be ignored for our RV32I reconstruction.
+
 ## Block diagram
 
 ![PicoRV32 RV32I block diagram](picorv32-block-diagram.svg)
@@ -138,9 +154,9 @@ Status:
 
 We will grow this section as we move downward through `picorv32.v`. The order below follows the upstream source rather than grouping topics by ISA instruction.
 
-### 0. File setup and core boundary — IN PROGRESS
+### 0. File setup and core boundary — DONE
 
-S01 completed the module parameter list through study RTL line 88. S02 resumes at the module port list.
+S01 covered the module parameters through line 88. S02 covered the module port list and local parameters through line 173.
 
 Document:
 
@@ -153,7 +169,9 @@ Document:
 
 Implementation result: define the external contract of our future core before implementing any internals.
 
-### 1. Core state and register file — TODO
+### 1. Core state and register file — IN PROGRESS
+
+S03 starts at study RTL line 174.
 
 Document:
 
