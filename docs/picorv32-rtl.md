@@ -53,7 +53,7 @@ What we settled:
 
 ## Block diagram
 
-![PicoRV32 RV32I block diagram](picorv32-block-diagram.svg)
+![PicoRV32 RV32I block diagram](picorv32_diagram.png)
 
 The diagram is derived from the RTL and shows the current RV32I study configuration. It is a living architectural view: as the source-order walkthrough exposes more precise boundaries or control relationships, update the SVG rather than treating it as an upstream specification.
 
