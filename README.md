@@ -38,6 +38,8 @@ Simulation writes the human-readable native memory bus trace to `build/bus.trace
 
 ## Documentation
 
+- [Lab roadmap](docs/roadmap.md) — planned experiments and scope
+
 - [Environment](docs/environment.md) — toolchain and simulation setup
 - [Bus trace](docs/trace.md) — signals, transaction format and usage
 - [PicoRV32 RTL reading notes](docs/picorv32-rtl.md) — relaxed side track for reading the core source
