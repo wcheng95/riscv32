@@ -76,6 +76,15 @@ For waveform study, inspect `pcpi_valid`, `pcpi_insn`, `pcpi_rs1`, `pcpi_rs2`, `
 
 ## Completion
 
-Source is committed; Mac mini simulation and wave inspection are pending. Record observed results here, not in the root README.
+**PASS — Mac mini functional validation completed (2026-10-14).**
+
+```text
+STORE 0 addr=00001000 data=0000000d
+STORE 1 addr=00001004 data=0000000e
+PASS: Lab11 PCPI custom op result=13,14 cycles=42
+```
+
+`make wave LAB=lab11` also passed and generated `build/lab11.vcd`. The self-checking testbench observed the custom instruction's source operands, PCPI wait, ready/writeback result and final memory stores. The VCD was generated but visual handshake inspection has not yet been reported.
+
 
 **Next:** Skip Lab12 and proceed directly to Lab13 (C compiler and ABI), per the project roadmap.
