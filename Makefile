@@ -7,8 +7,8 @@ OBJCOPY = $(RISCV_PREFIX)objcopy
 OBJDUMP = $(RISCV_PREFIX)objdump
 
 LAB ?= lab00
-ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06 lab07 lab08 lab09 lab10 lab11),)
-$(error Unsupported LAB=$(LAB); choose lab00 through lab11)
+ifeq ($(filter $(LAB),lab00 lab01 lab02 lab03 lab04 lab05 lab06 lab07 lab08 lab09 lab10 lab11 lab13),)
+$(error Unsupported LAB=$(LAB); choose lab00 through lab11, or lab13)
 endif
 
 TOP = riscv32_tb
@@ -18,7 +18,11 @@ $(error REGS must be 0 or 1)
 endif
 IRQ_ENABLE = $(if $(filter lab10,$(LAB)),1,0)
 PCPI_ENABLE = $(if $(filter lab11,$(LAB)),1,0)
-SIM = build/$(LAB)_regs$(REGS).vvp
+OPT ?= s
+ifneq ($(filter $(OPT),0 s),$(OPT))
+$(error OPT must be 0 or s)
+endif
+SIM = build/$(LAB)$(if $(filter lab13,$(LAB)),_$(OPT),)_regs$(REGS).vvp
 SRC = tbench/riscv32_tb.v tbench/ram.v tbench/bus_trace.v tbench/irq_source.v tbench/pcpi_demo.v picorv32/picorv32.v
 LAB_ID = $(patsubst lab%,%,$(LAB))
 WORDS_lab00 = 6
@@ -39,6 +43,8 @@ ifneq ($(filter $(CASE),illegal misalign),$(CASE))
 $(error CASE must be illegal or misalign)
 endif
 RUN_ARGS = +lab=$(LAB_ID) +hex=build/lab09_$(CASE).hex +words=$(if $(filter misalign,$(CASE)),3,2) +wait=$(WAIT)
+else ifeq ($(LAB),lab13)
+RUN_ARGS = +lab=13 +hex=build/lab13_$(OPT).hex +words=$(wc -l < build/lab13_$(OPT).hex) +wait=$(WAIT)
 else
 RUN_ARGS = +lab=$(LAB_ID) +hex=build/$(LAB).hex +words=$(WORDS) +wait=$(WAIT)
 endif
@@ -85,6 +91,9 @@ build/lab10.elf: labs/lab10/lab10.S labs/common/link.ld | build
 build/lab11.elf: labs/lab11/lab11.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
+build/lab13_%.elf: labs/common/start.S labs/lab13/lab13.c labs/common/c.ld | build
+	$(CC) -march=rv32i -mabi=ilp32 -mno-relax -O$* -ffreestanding -fno-builtin -fno-stack-protector -msmall-data-limit=0 -nostdlib -nostartfiles -Wl,-T,labs/common/c.ld -Wl,--build-id=none -o $@ labs/common/start.S labs/lab13/lab13.c
+
 build/lab09_illegal.elf: labs/lab09/illegal.S labs/common/link.ld | build
 	$(CC) $(ASFLAGS) -o $@ $<
 
@@ -99,6 +108,8 @@ build/%.hex: build/%.bin tools/bin2hex.py
 
 ifeq ($(LAB),lab09)
 FIRMWARE = build/lab09_illegal.hex build/lab09_misalign.hex
+else ifeq ($(LAB),lab13)
+FIRMWARE = build/lab13_$(OPT).hex
 else
 FIRMWARE = build/$(LAB).hex
 endif
@@ -132,12 +143,14 @@ test-all:
 	$(MAKE) test LAB=lab09
 	$(MAKE) test LAB=lab10
 	$(MAKE) test LAB=lab11
+	$(MAKE) test LAB=lab13 OPT=0
+	$(MAKE) test LAB=lab13 OPT=s
 
 wave: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
 	@echo "VCD: build/$(LAB).vcd"
 
-disasm: build/$(LAB).elf
+disasm: $(if $(filter lab13,$(LAB)),build/lab13_$(OPT).elf,build/$(LAB).elf)
 	$(OBJDUMP) -d $<
 
 toolchain-check:
