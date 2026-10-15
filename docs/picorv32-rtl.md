@@ -51,6 +51,29 @@ What we settled:
   - `regindex_bits = 5`
 - The remaining IRQ/trace/PCPI local parameters can be ignored for our RV32I reconstruction.
 
+### S03 — core datapath state and PCPI boundary — DONE
+
+**Study RTL:** lines 174–348  
+**Next:** line 349, memory interface
+
+What we settled:
+
+- For this study, skip `dbg_*`, `pcpi_*`, and `irq_*` signals unless one directly affects the RV32I path.
+- Core datapath/state signals introduced here:
+  - `reg_pc` — current instruction PC.
+  - `reg_next_pc` — next instruction address carried across cycles.
+  - `reg_op1` — latched first operand, usually `rs1`.
+  - `reg_op2` — latched second operand, either `rs2` or an immediate depending on the instruction.
+  - `reg_out` — general result/temporary register used across FSM states.
+  - `reg_sh` — shift count/state for the iterative shifter.
+  - `next_insn_opcode` — fetched instruction word headed toward decode.
+  - `next_pc` — combinational next-fetch address, defined later from control state.
+  - `cpuregs` — built-in integer register file; in our configuration this is 32 × 32-bit.
+- `count_cycle` and `count_instr` remain in the source but are inactive in the study configuration because `ENABLE_COUNTERS=0`.
+- The `integer i` and `initial` register-file initialization block are irrelevant with `REGS_INIT_ZERO=0`.
+- `empty_statement` is only a helper for the disabled/non-formal assert macro and is not CPU functionality.
+- Lines 255–348 are internal PCPI plumbing. With PCPI/M/DIV disabled, this entire region is outside the RV32I implementation path and can be skipped.
+
 ## Block diagram
 
 ![PicoRV32 RV32I block diagram](picorv32_diagram.png)
@@ -169,9 +192,9 @@ Document:
 
 Implementation result: define the external contract of our future core before implementing any internals.
 
-### 1. Core state and register file — IN PROGRESS
+### 1. Core state and register file — DONE
 
-S03 starts at study RTL line 174.
+S03 covered study RTL lines 174–348. Lines 255–348 are PCPI-only and skipped.
 
 Document:
 
@@ -184,11 +207,13 @@ Document:
 
 Implementation result: define the persistent datapath state.
 
-### 2. Optional PCPI multiply/divide plumbing — OUT OF SCOPE
+### 2. Optional PCPI multiply/divide plumbing — SKIPPED (S03)
 
 The upstream source encounters this before the memory interface. Record where it connects to the base core, but our RV32I implementation does not need the internal multiplier/divider/PCPI machinery.
 
-### 3. Memory interface — TODO
+### 3. Memory interface — IN PROGRESS
+
+S04 begins at study RTL line 349 and covers through line 643. Split into sub-sessions as needed.
 
 This is the first substantial base-RV32I subsystem in source order.
 
