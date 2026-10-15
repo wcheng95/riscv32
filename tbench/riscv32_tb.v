@@ -180,7 +180,9 @@ module riscv32_tb #(
                     $fatal(1, "FAIL: expected PC %08x got %08x", fetches * 4, mem_addr);
                 fetches <= fetches + 1;
             end
-            if (|mem_wstrb) begin
+            // Lab13 C code also writes stack frames. Only result-area writes
+            // are counted; unexpected non-stack stores still fail below.
+            if (|mem_wstrb && !(lab == 13 && mem_addr >= 32'h1008 && mem_addr < 32'h2000)) begin
                 if (lab == 10)
                     expected_addr = stores < 2 ? 32'h1000 : 32'h1004;
                 else if (lab == 4 && stores >= 5)
