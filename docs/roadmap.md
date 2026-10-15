@@ -17,7 +17,11 @@ This document owns the lab sequence and scope. Keep progress and measured result
 | **10** | **Interrupts** | Custom PicoRV32 IRQ/EOI, masking, entry and return |
 | **11** | **PCPI** | External coprocessor handshake and a small example operation |
 | 12 | Skipped | RV32M/RV32C experiments intentionally omitted; no implementation planned |
-| **13 (next after 11)** | **Compiler and ABI** | Tiny C code, arguments, stack, return values, optimization |
+| 13 | Compiler and ABI | Tiny C code, arguments, stack, return values, optimization |
+
+## Study status (2026-10-14)
+
+**Planned PicoRV32 labs complete:** Labs 00–11 and 13 finished; Lab12 deliberately skipped. Lab10 and Lab11 waveform reviews are complete. Lab13 `-O0` and `-Os` both passed (262 and 121 cycles), and the ISA/ABI/compiler questions were reviewed. Continue PicoRV32/RV32I study informally, without a fixed schedule or additional mandatory labs. Measurements and detailed results remain in lab READMEs.
 
 ## Lab design rules
 
@@ -31,8 +35,8 @@ This document owns the lab sequence and scope. Keep progress and measured result
 
 ## Later comparison
 
-After the RISC-V survey, return to [cisc68k Lab12](https://github.com/wcheng95/cisc68k/blob/main/docs/roadmap.md) for an evidence-based CISC-versus-RISC comparison.
+If useful at a later date, return to [cisc68k Lab12](https://github.com/wcheng95/cisc68k/blob/main/docs/roadmap.md) for an evidence-based CISC-versus-RISC comparison.
 
 ## Sequence decision (2026-10-14)
 
-Finish Lab11 PCPI, skip Lab12's optional RV32M/RV32C extensions, then proceed directly to Lab13 (C compiler/ABI). Lab10 functional test passed; its waveform inspection remains an optional follow-up.
+Lab12's optional RV32M/RV32C extensions were skipped, and Lab13 followed Lab11. The planned sequence is finished.
