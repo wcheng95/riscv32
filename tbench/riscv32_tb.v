@@ -275,7 +275,8 @@ module riscv32_tb #(
                     if (!pcpi_wait_seen || !pcpi_result_seen)
                         $fatal(1, "FAIL: missing PCPI wait or result handshake");
                     $display("PASS: Lab11 PCPI custom op result=13,14 cycles=%0d", cycles);
-                end
+                end else if (lab == 13)
+                    $display("PASS: Lab13 C ABI results=15,16 cycles=%0d", cycles);
                 $finish;
             end
             if (cycles > 500) $fatal(1, "FAIL: timeout");
