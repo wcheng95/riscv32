@@ -77,7 +77,7 @@ The supplied disassembly shows the substantial optimization difference:
 - `-Os`: `add3` starts at `0x10` and consists of just `add`, `addi` and `ret`, without a stack frame.
 - `-O0`: `main` starts at `0x5c`; `-Os`: `main` starts at `0x1c`.
 
-These are observed compiler choices, not ABI requirements. The functional results still need validation.
+These are observed compiler choices, not ABI requirements. The functional results still need validation. A subsequent run got past image loading and exposed a shared testbench assumption: C stack writes at `0x1ffc` (`-O0`) and `0x1fe8` (`-Os`) occurred before either result store. The checker has been updated to exclude accesses to the Lab13 stack region (`0x1008` through `0x1fff`) from the result-store sequence, while keeping the normal memory trace intact. Re-run both configurations to validate the correction.
 
 ## Completion
 
