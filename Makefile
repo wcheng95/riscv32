@@ -44,7 +44,7 @@ $(error CASE must be illegal or misalign)
 endif
 RUN_ARGS = +lab=$(LAB_ID) +hex=build/lab09_$(CASE).hex +words=$(if $(filter misalign,$(CASE)),3,2) +wait=$(WAIT)
 else ifeq ($(LAB),lab13)
-RUN_ARGS = +lab=13 +hex=build/lab13_$(OPT).hex +words=$(shell wc -l < build/lab13_$(OPT).hex) +wait=$(WAIT)
+RUN_ARGS = +lab=13 +hex=build/lab13_$(OPT).hex +words=$(shell awk 'END {print NR}' build/lab13_$(OPT).hex) +wait=$(WAIT)
 else
 RUN_ARGS = +lab=$(LAB_ID) +hex=build/$(LAB).hex +words=$(WORDS) +wait=$(WAIT)
 endif
