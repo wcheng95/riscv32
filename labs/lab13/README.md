@@ -81,6 +81,15 @@ These are observed compiler choices, not ABI requirements. The functional result
 
 ## Completion
 
-Pending Mac mini functional validation, comparison of both disassemblies and waveform inspection. Record measured results here, not in the root README.
+**Functional validation successful (2026-10-14), both `-O0` and `-Os`.** User-provided output confirms completed result writes without fatal errors:
+
+```text
+STORE 0 addr=00001000 data=0000000f
+STORE 1 addr=00001004 data=00000010
+```
+
+`-O0` uses 52 instruction words (208 bytes) and terminates at simulator timestamp 2725000 ps; `-Os` uses 25 words (100 bytes) and terminates at 1315000 ps. With the testbench's 100 ns reset release and 10 ns clock, that corresponds to approximately 262 and 121 elapsed testbench cycles, respectively. These are whole-program figures, not function-only benchmarks.
+
+The first successful runs exposed a missing *PASS display branch* in the checker; the checker already validated final memory contents and exited cleanly. The PASS reporting branch is now fixed but has not yet been rerun by the user. Waveform inspection for Lab13 remains optional. Keep measurements here, not in the root README.
 
 Lab12 was intentionally skipped. This concludes the planned standalone RISC-V ISA/CPU survey once Lab13 is complete.
