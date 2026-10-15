@@ -84,7 +84,9 @@ STORE 1 addr=00001004 data=0000000e
 PASS: Lab11 PCPI custom op result=13,14 cycles=42
 ```
 
-`make wave LAB=lab11` also passed and generated `build/lab11.vcd`. The self-checking testbench observed the custom instruction's source operands, PCPI wait, ready/writeback result and final memory stores. The VCD was generated but visual handshake inspection has not yet been reported.
+`make wave LAB=lab11` also passed and generated `build/lab11.vcd`. The self-checking testbench observed the custom instruction's source operands, PCPI wait, ready/writeback result and final memory stores. The VCD was visually inspected and the PCPI handshake was observed.
 
+
+**CLOSED — 2026-10-14.** Functional PASS (42 cycles), waveform generated and inspected; no further Lab11 work planned.
 
 **Next:** Skip Lab12 and proceed directly to Lab13 (C compiler and ABI), per the project roadmap.
