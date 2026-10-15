@@ -68,8 +68,8 @@ module riscv32_tb #(
     );
 
     initial begin
-        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || lab > 11))
-            $fatal(1, "Use +lab=0 through 11");
+        if (!$value$plusargs("lab=%d", lab) || (lab < 0 || (lab > 11 && lab != 13)))
+            $fatal(1, "Use +lab=0 through 11, or 13");
         if (lab == 0) begin
             expected_stores = 1;
             expected[0] = 12;
@@ -122,10 +122,14 @@ module riscv32_tb #(
             expected[0] = 0;
             expected[1] = 32'ha5;
             expected[2] = 32'h5a;
-        end else begin
+        end else if (lab == 11) begin
             expected_stores = 2;
             expected[0] = 13;
             expected[1] = 14;
+        end else begin
+            expected_stores = 2;
+            expected[0] = 15;
+            expected[1] = 16;
         end
         repeat (10) @(negedge clk);
         resetn = 1;
@@ -144,7 +148,8 @@ module riscv32_tb #(
             else if (lab == 8) $dumpfile("build/lab08.vcd");
             else if (lab == 9) $dumpfile("build/lab09.vcd");
             else if (lab == 10) $dumpfile("build/lab10.vcd");
-            else $dumpfile("build/lab11.vcd");
+            else if (lab == 11) $dumpfile("build/lab11.vcd");
+            else $dumpfile("build/lab13.vcd");
             $dumpvars(0, riscv32_tb);
         end
     end
@@ -193,6 +198,7 @@ module riscv32_tb #(
                     (lab == 8 && stores >= 2) ||
                     (lab == 10 && stores >= 3) ||
                     (lab == 11 && stores >= 2) ||
+                    (lab == 13 && stores >= 2) ||
                     mem_addr !== expected_addr ||
                     (lab == 4 && stores == 5
                       ? (mem_wstrb !== 4'b0010 || mem_wdata[15:8] !== 8'h01)
