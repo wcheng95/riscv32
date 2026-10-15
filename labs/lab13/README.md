@@ -67,6 +67,18 @@ Each optimization mode has a distinct ELF, HEX and simulator binary in `build/`,
 4. Why is `sp` initialized in assembly rather than automatically by PicoRV32?
 5. Which features belong to the RV32I ISA, which to the ABI, and which to GCC's optimization?
 
+## First Mac mini build observation
+
+Both builds compiled and disassembled successfully, but the first simulation attempt stopped before execution: the Makefile supplied an empty `+words=` value, causing `ram.v` to reject the program size. The Makefile word-count expansion was corrected; simulation still requires rerunning.
+
+The supplied disassembly shows the substantial optimization difference:
+
+- `-O0`: `add3` starts at `0x10`, has a 48-byte stack frame, saves `ra` and `s0`, and spills arguments and the intermediate result.
+- `-Os`: `add3` starts at `0x10` and consists of just `add`, `addi` and `ret`, without a stack frame.
+- `-O0`: `main` starts at `0x5c`; `-Os`: `main` starts at `0x1c`.
+
+These are observed compiler choices, not ABI requirements. The functional results still need validation.
+
 ## Completion
 
 Pending Mac mini functional validation, comparison of both disassemblies and waveform inspection. Record measured results here, not in the root README.
