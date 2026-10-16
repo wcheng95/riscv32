@@ -128,3 +128,20 @@ python3 tools/make_picorv32_rv32i_study.py
 
 The generator refuses to proceed if the pinned upstream PicoRV32 blob no longer
 matches the source it was written for.
+
+
+## Licensing
+
+PicoRV32 is licensed under the ISC License. The upstream license permits use,
+copying, modification, and distribution, including for commercial purposes,
+provided that the original copyright notice and permission notice are retained.
+
+Because both `picorv32-rv32i-clean.v` and `../../rtl/rv32_core.v` were developed
+from PicoRV32 source/structure, this repository conservatively treats them as
+PicoRV32-derived works and carries the full ISC notice in each source file.
+
+The pinned upstream license is also retained at `../../picorv32/COPYING`.
+
+Future extensions to `rv32_core.v` (for example Zicsr, Machine-mode traps,
+timers, and accelerators) may be original work, but keeping the ISC notice on
+the evolving file preserves compliance for the PicoRV32-derived portions.
