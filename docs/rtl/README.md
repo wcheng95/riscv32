@@ -1,10 +1,73 @@
 # PicoRV32 RV32I study RTL
 
-`picorv32-rv32i-study.v` is a **line-preserving source projection** of
-`../../picorv32/picorv32.v`.
+There are now three deliberately different RTL views:
 
-It is for reading and documentation only. The canonical RTL remains the unmodified
-upstream copy under `picorv32/`.
+```text
+picorv32/picorv32.v
+        ↓
+docs/rtl/picorv32-rv32i-study.v    line-preserving audit/reference
+        ↓
+docs/rtl/picorv32-rv32i-clean.v    Phase A: cleaned fixed-RV32I PicoRV32
+        ↓
+rtl/rv32_core.v                     Phase B: independent own core
+```
+
+## Which file to study
+
+Use **`picorv32-rv32i-clean.v` as the primary PicoRV32 study file from S04 onward**.
+
+The line-preserving `picorv32-rv32i-study.v` remains available only as an audit/reference snapshot. It preserves the upstream line numbering but intentionally contains dead fixed-parameter expressions.
+
+Do **not** switch the current PicoRV32 walkthrough to `rtl/rv32_core.v`. That file is the future independent core and should stay secondary until the PicoRV32 walkthrough is complete.
+
+## Phase A validation
+
+`picorv32-rv32i-clean.v` keeps PicoRV32's fixed RV32I control/timing structure while removing disabled feature families and fixed configuration branches.
+
+Validation target:
+
+```sh
+make test-clean-equiv RISCV_PREFIX=riscv64-unknown-elf-
+```
+
+The lockstep test instantiates the pinned upstream PicoRV32 and the cleaned core with identical RAMs, then compares every valid native-bus transaction cycle by cycle.
+
+Validated in CI:
+
+- Lab00 through Lab06
+- Lab06 again with 3 inserted memory wait states
+
+Result: **PASS**.
+
+## Phase B validation
+
+`../../rtl/rv32_core.v` is an independent, simpler RV32I implementation:
+
+- one instruction in flight
+- no instruction prefetch/look-ahead path
+- simple fetch / execute / memory / trap FSM
+- same 32-bit `mem_valid/mem_ready` native bus
+- no C, M, PCPI, IRQ, counters or trace
+
+Validation target:
+
+```sh
+make test-own-rv32i RISCV_PREFIX=riscv64-unknown-elf-
+```
+
+Validated in CI:
+
+- Labs 00–06
+- Lab06 with 3 memory wait states
+- Lab08 register/ALU sequence
+- Lab09 illegal-instruction trap
+- Lab09 misalignment trap
+- Lab13 C ABI at `-O0`
+- Lab13 C ABI at `-Os`
+
+Result: **PASS**.
+
+The independent core is intentionally not cycle-equivalent to PicoRV32; only architectural behavior is expected to match.
 
 ## Fixed study configuration
 
