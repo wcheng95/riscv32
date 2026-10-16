@@ -1,0 +1,25 @@
+name: rv32i-core
+
+on:
+  push:
+    branches:
+      - main
+      - codex/rv32i-clean-core
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  strict-rv32i:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install RTL and RISC-V tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+
+      - name: Phase A fixed-RV32I equivalence
+        run: |
+          make test-clean-equiv RISCV_PREFIX=riscv64-unknown-elf-
