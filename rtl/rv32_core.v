@@ -388,7 +388,7 @@ module rv32_core #(
                                     end
                                     3'b001: begin
                                         mem_wdata <= {2{rs2_value[15:0]}};
-                                        mem_wstrb <= eff_addr[1] ? 4'b1100 : 4'b0011;
+                                        mem_wstrb <= store_addr[1] ? 4'b1100 : 4'b0011;
                                     end
                                     default: begin
                                         mem_wdata <= rs2_value;
