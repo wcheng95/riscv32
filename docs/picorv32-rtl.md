@@ -78,6 +78,38 @@ What we settled:
 - `empty_statement` is only a helper for the disabled/non-formal assert macro and is not CPU functionality.
 - Lines 255–348 are internal PCPI plumbing. With PCPI/M/DIV disabled, this entire region is outside the RV32I implementation path and can be skipped.
 
+### S04 — memory interface — DONE
+
+**Clean study RTL:** lines 46–159  
+**Next:** S05, instruction decoder, beginning at line 161
+
+What we settled:
+
+- The CPU FSM requests memory work internally with:
+  - `mem_do_prefetch`
+  - `mem_do_rinst`
+  - `mem_do_rdata`
+  - `mem_do_wdata`
+- The external native bus uses the independent `mem_valid/mem_ready` handshake. A completed external transfer is:
+  - `mem_xfer = mem_valid && mem_ready`
+- `mem_done` is a CPU/memory-controller completion indication and is not identical in meaning to the raw external bus transfer because PicoRV32 also supports prefetch.
+- `mem_instr=1` marks instruction traffic; data loads/stores use `mem_instr=0`.
+- PicoRV32 presents a 32-bit word-aligned bus address. For data accesses:
+  - `reg_op1[31:2]` selects the aligned 32-bit word.
+  - `reg_op1[1:0]` selects the byte lane inside that word.
+- `mem_wordsize` selects word/halfword/byte behavior. Stores replicate the low byte or halfword across the write-data bus and use `mem_wstrb` to select the active lane(s).
+- Halfword lane selection needs only address bit `reg_op1[1]`; byte lane selection uses `reg_op1[1:0]`.
+- Loads perform the inverse lane selection. The memory block extracts the byte/halfword and zero-extends it; signed `LB/LH` extension belongs to later CPU control/writeback logic.
+- PicoRV32's look-ahead `mem_la_*` interface and instruction prefetch are microarchitectural performance mechanisms, transparent to the ISA/compiler. They are useful to understand as PicoRV32 behavior but are not required in a future from-scratch core.
+- Memory FSM:
+  - state 0 — idle / launch next read or write.
+  - state 1 — read transaction waiting for `mem_xfer`.
+  - state 2 — write transaction waiting for `mem_xfer`.
+  - state 3 — completed prefetch held until the CPU requests the instruction with `mem_do_rinst`, then return to state 0.
+- On terminal PicoRV32 `trap`, the memory FSM stops advancing; reset is what returns the core to normal execution.
+- For a future simple core, a single blocking CPU FSM can own fetch/load/store directly; a separate memory FSM becomes useful only when independent memory progress such as prefetch/overlap is desired.
+- The RV32I instruction checklist now includes binary encodings. Load/store instructions remain `TODO` until their full path from decode through architectural effect has been traced.
+
 ## Block diagram
 
 ![PicoRV32 RV32I block diagram](picorv32_diagram.png)
@@ -401,28 +433,27 @@ Implementation result: define the persistent datapath state.
 
 The upstream source encounters this before the memory interface. Record where it connects to the base core, but our RV32I implementation does not need the internal multiplier/divider/PCPI machinery.
 
-### 3. Memory interface — IN PROGRESS
+### 3. Memory interface — DONE (S04)
 
-S04 began from the old line-preserving view at lines 349–643. From S04 onward, use the cleaned file instead; its memory-interface section begins at line 47. Split into sub-sessions as needed.
+S04 uses the cleaned fixed-RV32I file, lines 46–159.
 
-This is the first substantial base-RV32I subsystem in source order.
+Documented:
 
-Document:
-
-- `mem_state`
-- `mem_do_prefetch`, `mem_do_rinst`, `mem_do_rdata`, `mem_do_wdata`
-- `mem_valid/mem_ready` transaction lifecycle
+- internal CPU memory requests versus the external `mem_valid/mem_ready` bus handshake
+- `mem_xfer` versus `mem_done`
 - instruction versus data transactions
 - `mem_wordsize`
-- byte/halfword/word lane selection
-- load-data extraction
+- aligned 32-bit bus addressing and low-address-bit byte-lane selection
+- byte/halfword/word load extraction
 - store-data replication and write strobes
-- look-ahead interface versus committed memory request
-- which compressed-instruction paths disappear when `COMPRESSED_ISA=0`
+- PicoRV32 look-ahead and prefetch behavior
+- the four memory states: idle, read wait, write wait, and prefetched-instruction hold
+- terminal-trap behavior at the memory-controller boundary
+- which mechanisms are PicoRV32 performance choices rather than requirements for a future simple core
 
-Implementation result: enough detail to build the CPU's fetch/load/store bus controller independently.
+Implementation result: enough detail to independently build a blocking fetch/load/store interface, while recognizing where PicoRV32 adds prefetch overlap.
 
-### 4. Instruction decoder — TODO
+### 4. Instruction decoder — NEXT (S05)
 
 Document in the exact order the RTL introduces and computes decode state:
 
