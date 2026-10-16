@@ -359,7 +359,7 @@ Status:
 | 35 | `SRA rd, rs1, rs2` | R | `0100000 rs2 rs1 101 rd 0110011` | arithmetic right shift | TODO | |
 | 36 | `OR rd, rs1, rs2` | R | `0000000 rs2 rs1 110 rd 0110011` | bitwise OR | TODO | |
 | 37 | `AND rd, rs1, rs2` | R | `0000000 rs2 rs1 111 rd 0110011` | bitwise AND | TODO | |
-| 38 | `FENCE` | memory ordering | `fm pred succ rs1 000 rd 0001111` | order memory/device accesses | TODO | |
+| 38 | `FENCE` | memory ordering | `fm pred succ 00000 000 00000 0001111` | order memory/device accesses | TODO | |
 | 39 | `ECALL` | SYSTEM | `000000000000 00000 000 00000 1110011` | environment call | TODO | |
 | 40 | `EBREAK` | SYSTEM | `000000000001 00000 000 00000 1110011` | breakpoint request | TODO | |
 
