@@ -23,3 +23,7 @@ jobs:
       - name: Phase A fixed-RV32I equivalence
         run: |
           make test-clean-equiv RISCV_PREFIX=riscv64-unknown-elf-
+
+      - name: Phase B independent RV32I core
+        run: |
+          make test-own-rv32i RISCV_PREFIX=riscv64-unknown-elf-
