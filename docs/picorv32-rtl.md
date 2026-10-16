@@ -309,53 +309,59 @@ Excluded:
 - CSR instructions from the separate Zicsr extension
 - `FENCE.I`, which belongs to the separate Zifencei extension
 
+Encoding notation:
+- `rd`, `rs1`, `rs2` are 5-bit register fields
+- `imm[...]` shows immediate-bit placement in the 32-bit instruction
+- spaces separate architectural instruction fields
+- fixed binary fields are written literally
+
 Status:
 - `TODO` — not yet traced
 - `CHECKED` — decode through architectural effect understood
 - `NOTE` — behavior understood but deserves a follow-up detail
 
-| # | Instruction | Class | Architectural effect | RTL status | RTL notes |
-|---:|---|---|---|---|---|
-| 1 | `LUI rd, imm` | U | `rd = imm << 12` | TODO | |
-| 2 | `AUIPC rd, imm` | U | `rd = pc + (imm << 12)` | TODO | |
-| 3 | `JAL rd, off` | J | `rd = pc+4; pc += off` | TODO | |
-| 4 | `JALR rd, rs1, imm` | I | `rd = pc+4; pc = (rs1+imm) & ~1` | TODO | |
-| 5 | `BEQ rs1, rs2, off` | B | branch if `rs1 == rs2` | TODO | |
-| 6 | `BNE rs1, rs2, off` | B | branch if `rs1 != rs2` | TODO | |
-| 7 | `BLT rs1, rs2, off` | B | signed `rs1 < rs2` | TODO | |
-| 8 | `BGE rs1, rs2, off` | B | signed `rs1 >= rs2` | TODO | |
-| 9 | `BLTU rs1, rs2, off` | B | unsigned `rs1 < rs2` | TODO | |
-| 10 | `BGEU rs1, rs2, off` | B | unsigned `rs1 >= rs2` | TODO | |
-| 11 | `LB rd, imm(rs1)` | I/load | load byte, sign-extend | TODO | |
-| 12 | `LH rd, imm(rs1)` | I/load | load halfword, sign-extend | TODO | |
-| 13 | `LW rd, imm(rs1)` | I/load | load word | TODO | |
-| 14 | `LBU rd, imm(rs1)` | I/load | load byte, zero-extend | TODO | |
-| 15 | `LHU rd, imm(rs1)` | I/load | load halfword, zero-extend | TODO | |
-| 16 | `SB rs2, imm(rs1)` | S/store | store low byte | TODO | |
-| 17 | `SH rs2, imm(rs1)` | S/store | store low halfword | TODO | |
-| 18 | `SW rs2, imm(rs1)` | S/store | store word | TODO | |
-| 19 | `ADDI rd, rs1, imm` | I/ALU | `rd = rs1 + imm` | TODO | |
-| 20 | `SLTI rd, rs1, imm` | I/ALU | signed less-than immediate | TODO | |
-| 21 | `SLTIU rd, rs1, imm` | I/ALU | unsigned less-than immediate | TODO | |
-| 22 | `XORI rd, rs1, imm` | I/ALU | bitwise XOR immediate | TODO | |
-| 23 | `ORI rd, rs1, imm` | I/ALU | bitwise OR immediate | TODO | |
-| 24 | `ANDI rd, rs1, imm` | I/ALU | bitwise AND immediate | TODO | |
-| 25 | `SLLI rd, rs1, shamt` | I/shift | logical left shift | TODO | |
-| 26 | `SRLI rd, rs1, shamt` | I/shift | logical right shift | TODO | |
-| 27 | `SRAI rd, rs1, shamt` | I/shift | arithmetic right shift | TODO | |
-| 28 | `ADD rd, rs1, rs2` | R | `rd = rs1 + rs2` | TODO | |
-| 29 | `SUB rd, rs1, rs2` | R | `rd = rs1 - rs2` | TODO | |
-| 30 | `SLL rd, rs1, rs2` | R | logical left shift | TODO | |
-| 31 | `SLT rd, rs1, rs2` | R | signed less-than | TODO | |
-| 32 | `SLTU rd, rs1, rs2` | R | unsigned less-than | TODO | |
-| 33 | `XOR rd, rs1, rs2` | R | bitwise XOR | TODO | |
-| 34 | `SRL rd, rs1, rs2` | R | logical right shift | TODO | |
-| 35 | `SRA rd, rs1, rs2` | R | arithmetic right shift | TODO | |
-| 36 | `OR rd, rs1, rs2` | R | bitwise OR | TODO | |
-| 37 | `AND rd, rs1, rs2` | R | bitwise AND | TODO | |
-| 38 | `FENCE` | memory ordering | order memory/device accesses | TODO | |
-| 39 | `ECALL` | SYSTEM | environment call | TODO | |
-| 40 | `EBREAK` | SYSTEM | breakpoint request | TODO | |
+| # | Instruction | Class | Binary encoding (31 → 0) | Architectural effect | RTL status | RTL notes |
+|---:|---|---|---|---|---|---|
+| 1 | `LUI rd, imm` | U | `imm[31:12] rd 0110111` | `rd = imm << 12` | TODO | |
+| 2 | `AUIPC rd, imm` | U | `imm[31:12] rd 0010111` | `rd = pc + (imm << 12)` | TODO | |
+| 3 | `JAL rd, off` | J | `imm[20] imm[10:1] imm[11] imm[19:12] rd 1101111` | `rd = pc+4; pc += off` | TODO | |
+| 4 | `JALR rd, rs1, imm` | I | `imm[11:0] rs1 000 rd 1100111` | `rd = pc+4; pc = (rs1+imm) & ~1` | TODO | |
+| 5 | `BEQ rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 000 imm[4:1] imm[11] 1100011` | branch if `rs1 == rs2` | TODO | |
+| 6 | `BNE rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 001 imm[4:1] imm[11] 1100011` | branch if `rs1 != rs2` | TODO | |
+| 7 | `BLT rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 100 imm[4:1] imm[11] 1100011` | signed `rs1 < rs2` | TODO | |
+| 8 | `BGE rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 101 imm[4:1] imm[11] 1100011` | signed `rs1 >= rs2` | TODO | |
+| 9 | `BLTU rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 110 imm[4:1] imm[11] 1100011` | unsigned `rs1 < rs2` | TODO | |
+| 10 | `BGEU rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 111 imm[4:1] imm[11] 1100011` | unsigned `rs1 >= rs2` | TODO | |
+| 11 | `LB rd, imm(rs1)` | I/load | `imm[11:0] rs1 000 rd 0000011` | load byte, sign-extend | TODO | |
+| 12 | `LH rd, imm(rs1)` | I/load | `imm[11:0] rs1 001 rd 0000011` | load halfword, sign-extend | TODO | |
+| 13 | `LW rd, imm(rs1)` | I/load | `imm[11:0] rs1 010 rd 0000011` | load word | TODO | |
+| 14 | `LBU rd, imm(rs1)` | I/load | `imm[11:0] rs1 100 rd 0000011` | load byte, zero-extend | TODO | |
+| 15 | `LHU rd, imm(rs1)` | I/load | `imm[11:0] rs1 101 rd 0000011` | load halfword, zero-extend | TODO | |
+| 16 | `SB rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 000 imm[4:0] 0100011` | store low byte | TODO | |
+| 17 | `SH rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 001 imm[4:0] 0100011` | store low halfword | TODO | |
+| 18 | `SW rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 010 imm[4:0] 0100011` | store word | TODO | |
+| 19 | `ADDI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 000 rd 0010011` | `rd = rs1 + imm` | TODO | |
+| 20 | `SLTI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 010 rd 0010011` | signed less-than immediate | TODO | |
+| 21 | `SLTIU rd, rs1, imm` | I/ALU | `imm[11:0] rs1 011 rd 0010011` | unsigned less-than immediate | TODO | |
+| 22 | `XORI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 100 rd 0010011` | bitwise XOR immediate | TODO | |
+| 23 | `ORI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 110 rd 0010011` | bitwise OR immediate | TODO | |
+| 24 | `ANDI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 111 rd 0010011` | bitwise AND immediate | TODO | |
+| 25 | `SLLI rd, rs1, shamt` | I/shift | `0000000 shamt rs1 001 rd 0010011` | logical left shift | TODO | |
+| 26 | `SRLI rd, rs1, shamt` | I/shift | `0000000 shamt rs1 101 rd 0010011` | logical right shift | TODO | |
+| 27 | `SRAI rd, rs1, shamt` | I/shift | `0100000 shamt rs1 101 rd 0010011` | arithmetic right shift | TODO | |
+| 28 | `ADD rd, rs1, rs2` | R | `0000000 rs2 rs1 000 rd 0110011` | `rd = rs1 + rs2` | TODO | |
+| 29 | `SUB rd, rs1, rs2` | R | `0100000 rs2 rs1 000 rd 0110011` | `rd = rs1 - rs2` | TODO | |
+| 30 | `SLL rd, rs1, rs2` | R | `0000000 rs2 rs1 001 rd 0110011` | logical left shift | TODO | |
+| 31 | `SLT rd, rs1, rs2` | R | `0000000 rs2 rs1 010 rd 0110011` | signed less-than | TODO | |
+| 32 | `SLTU rd, rs1, rs2` | R | `0000000 rs2 rs1 011 rd 0110011` | unsigned less-than | TODO | |
+| 33 | `XOR rd, rs1, rs2` | R | `0000000 rs2 rs1 100 rd 0110011` | bitwise XOR | TODO | |
+| 34 | `SRL rd, rs1, rs2` | R | `0000000 rs2 rs1 101 rd 0110011` | logical right shift | TODO | |
+| 35 | `SRA rd, rs1, rs2` | R | `0100000 rs2 rs1 101 rd 0110011` | arithmetic right shift | TODO | |
+| 36 | `OR rd, rs1, rs2` | R | `0000000 rs2 rs1 110 rd 0110011` | bitwise OR | TODO | |
+| 37 | `AND rd, rs1, rs2` | R | `0000000 rs2 rs1 111 rd 0110011` | bitwise AND | TODO | |
+| 38 | `FENCE` | memory ordering | `fm pred succ rs1 000 rd 0001111` | order memory/device accesses | TODO | |
+| 39 | `ECALL` | SYSTEM | `000000000000 00000 000 00000 1110011` | environment call | TODO | |
+| 40 | `EBREAK` | SYSTEM | `000000000001 00000 000 00000 1110011` | breakpoint request | TODO | |
 
 ## RTL-order walkthrough
 
