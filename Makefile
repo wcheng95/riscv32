@@ -189,8 +189,8 @@ test-own-rv32i: $(OWN_SIM)
 	$(VVP) $(OWN_SIM) +lab=8 +hex=build/lab08.hex +words=$(WORDS_lab08) +wait=0
 	$(VVP) $(OWN_SIM) +lab=9 +hex=build/lab09_illegal.hex +words=2 +wait=0
 	$(VVP) $(OWN_SIM) +lab=9 +hex=build/lab09_misalign.hex +words=3 +wait=0
-	$(VVP) $(OWN_SIM) +lab=13 +hex=build/lab13_0.hex +words=$(wc -l < build/lab13_0.hex) +wait=0
-	$(VVP) $(OWN_SIM) +lab=13 +hex=build/lab13_s.hex +words=$(wc -l < build/lab13_s.hex) +wait=0
+	$(VVP) $(OWN_SIM) +lab=13 +hex=build/lab13_0.hex +words=`awk 'END {print NR}' build/lab13_0.hex` +wait=0
+	$(VVP) $(OWN_SIM) +lab=13 +hex=build/lab13_s.hex +words=`awk 'END {print NR}' build/lab13_s.hex` +wait=0
 
 wave: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
