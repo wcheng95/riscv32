@@ -218,6 +218,62 @@ context resumes correctly
 
 Only after that baseline is stable should the MCU grow UART, GPIO, MiniShell, or accelerators.
 
+### Development platform and project boundary
+
+Do not build the software toolchain or a complete machine ecosystem from scratch.
+
+Use existing, standard components:
+
+```text
+RISC-V GCC / binutils
+        ↓
+FreeRTOS + firmware
+        ↓
+QEMU RISC-V virt machine
+        ↓
+reference behavior / software bring-up
+        ↓
+our RV32I + Zicsr + M-mode RTL
+        ↓
+minimal compatible MCU peripherals
+        ↓
+FPGA
+```
+
+The compiler, assembler, linker, debugger and ABI are **not** part of this project. The CPU should run ordinary compiler-generated RISC-V code rather than requiring a custom compiler.
+
+Use QEMU `virt` as the software/reference platform so we do not need to invent every board-level convention ourselves. Prove FreeRTOS and firmware behavior there first, then reproduce only the software-visible hardware that the RTL MCU actually needs.
+
+Do **not** try to clone the complete QEMU `virt` machine in FPGA. Start with the minimum useful hardware:
+
+```text
+RV32I + Zicsr + M-mode CPU
+            │
+            ├── RAM
+            ├── timer / software-interrupt block
+            └── UART
+```
+
+Add PLIC, flash interfaces, GPIO or other peripherals only when a concrete requirement appears.
+
+A useful validation target is to keep the same normal RISC-V software/toolchain path across:
+
+```text
+QEMU
+  ↓
+RTL simulation
+  ↓
+FPGA
+```
+
+The closer the firmware environment stays across those three targets, the less custom infrastructure we need to maintain.
+
+### FPGA target
+
+The MCU RTL is intended to run on FPGA after the software path has been validated in QEMU and RTL simulation.
+
+The FPGA is the hardware learning/deployment target, not a reason to build a custom compiler, operating system, or board ecosystem. Keep hardware/software boundaries conventional wherever possible so effort stays concentrated on CPU architecture, interrupt/trap support, peripherals and accelerators.
+
 ### Accelerator direction
 
 Future accelerators such as an LDPC decoder should initially sit behind a clean module/interface boundary rather than being mixed directly into the CPU datapath.
