@@ -114,6 +114,130 @@ When the upstream RTL reaches C, M, PCPI, IRQ, trace, or formal-only machinery, 
 
 The RV32I instruction table below is therefore a **coverage index**, not the reading order. An instruction becomes `CHECKED` only when the source-ordered walkthrough has exposed its complete path from decode to architectural effect.
 
+## Next goal after PicoRV32: minimum FreeRTOS-capable MCU
+
+Do **not** start this until the PicoRV32 RV32I core walkthrough is complete. The immediate goal remains understanding the existing core well enough to reconstruct it independently.
+
+After that, use the reconstructed RV32I core as the base for a minimal standards-based RISC-V MCU capable of running FreeRTOS.
+
+Target progression:
+
+```text
+understand PicoRV32 RV32I completely
+        ↓
+reconstruct own small RV32I core
+        ↓
+add Zicsr
+        ↓
+add minimal Machine-mode trap/interrupt support
+        ↓
+add timer interrupt
+        ↓
+run FreeRTOS
+        ↓
+add peripherals / accelerators incrementally
+```
+
+### Minimum architectural additions
+
+Keep the first MCU intentionally small:
+
+- **RV32I** base ISA.
+- **Zicsr** CSR instructions.
+- **Machine mode only**; no Supervisor/User mode requirement.
+- Minimal Machine-mode CSRs needed by the FreeRTOS port:
+  - `mstatus`
+  - `mie`
+  - `mip`
+  - `mtvec`
+  - `mepc`
+  - `mcause`
+  - `mscratch`
+  - add `mtval` only when useful for cleaner exception reporting.
+- **`MRET`** to return from traps/interrupts.
+- **`ECALL`** handling for voluntary FreeRTOS task yield.
+- One **periodic Machine-mode timer interrupt** for the FreeRTOS tick.
+- Writable RAM for task stacks and the FreeRTOS heap.
+- Program storage in ROM/flash/RAM.
+
+Not required for the first FreeRTOS MCU:
+
+- A extension / atomics for a single-core implementation.
+- MMU.
+- PMP.
+- FPU.
+- Vector extension.
+- Multi-core support.
+- Full CLINT if a simpler timer can provide the required Machine-mode tick interrupt.
+
+### Minimal trap behavior
+
+On interrupt or exception, the hardware should conceptually provide:
+
+```text
+mepc          ← interrupted/faulting PC
+mcause        ← trap cause
+mstatus.MPIE  ← mstatus.MIE
+mstatus.MIE   ← 0
+PC            ← mtvec
+```
+
+Software then saves/restores the remaining task context. `MRET` restores the Machine interrupt-enable state and resumes execution from `mepc`.
+
+For an `ECALL`-based FreeRTOS yield, the trap handler must distinguish the environment-call cause, perform the scheduler/context-switch work, advance `mepc` past the `ECALL`, and return with `MRET`.
+
+### Minimal timer
+
+Start with a deliberately small timer block:
+
+```text
+free-running counter
+        │
+   compare register
+        │
+counter >= compare
+        ↓
+Machine timer interrupt
+        ↓
+FreeRTOS tick handler
+```
+
+A standards-compatible `mtime` / `mtimecmp` style interface is desirable, but the first implementation may use a simpler memory-mapped timer if the small FreeRTOS port layer is adapted cleanly.
+
+### First FreeRTOS milestone
+
+Keep the first software test smaller than MiniShell or any real application:
+
+```text
+Task A increments / reports A
+Task B increments / reports B
+periodic timer tick preempts them
+explicit yield via ECALL works
+context resumes correctly
+```
+
+Only after that baseline is stable should the MCU grow UART, GPIO, MiniShell, or accelerators.
+
+### Accelerator direction
+
+Future accelerators such as an LDPC decoder should initially sit behind a clean module/interface boundary rather than being mixed directly into the CPU datapath.
+
+A first version can be memory-mapped:
+
+```text
+CPU
+ │
+ │ registers / command / data
+ ▼
+LDPC accelerator
+ │
+ └── status / result / interrupt
+```
+
+Custom instructions can be considered later only if measurements show that the memory-mapped command path is a meaningful bottleneck.
+
+The design principle for this evolution remains: keep the RV32I core understandable and stable, and add capability around it in owned, decoupled modules.
+
 ## RV32I instruction checklist
 
 This table intentionally contains **only real RV32I instructions**.
