@@ -8,12 +8,16 @@ The repository carries PicoRV32 from upstream commit `ef203c2b0a3fb793280f511494
 
 The configured study core is **RV32I**: compressed instructions, multiply/divide and PCPI are disabled in the shared testbench.
 
-## Study RTL projection
+## Study RTL views
 
-- [Line-preserving RV32I study RTL](rtl/picorv32-rv32i-study.v)
-- [Projection rules and fixed configuration](rtl/README.md)
+- [Clean fixed-RV32I PicoRV32](rtl/picorv32-rv32i-clean.v) — **primary walkthrough file from S04 onward**
+- [Line-preserving RV32I study RTL](rtl/picorv32-rv32i-study.v) — audit/reference snapshot
+- [RTL view/validation notes](rtl/README.md)
+- [Independent RV32I core](../rtl/rv32_core.v) — future own-core baseline; defer detailed study until PicoRV32 is understood
 
-Use the study RTL for the relaxed source-order walkthrough, and cross-check any point against the untouched upstream copy under `picorv32/`.
+The line-preserving view was useful for S01–S03 because source line numbers matched upstream exactly. Starting with the memory-interface study, use the cleaned fixed-RV32I core so disabled C/M/PCPI/IRQ/counter/trace paths no longer consume attention.
+
+Phase A was validated cycle-for-cycle against fixed-configuration upstream PicoRV32 on Labs 00–06, including inserted memory wait states. Phase B is intentionally simpler and was validated architecturally through the strict-RV32I regression; it is not expected to preserve PicoRV32 timing.
 
 ## Session progress
 
@@ -393,7 +397,7 @@ The upstream source encounters this before the memory interface. Record where it
 
 ### 3. Memory interface — IN PROGRESS
 
-S04 begins at study RTL line 349 and covers through line 643. Split into sub-sessions as needed.
+S04 began from the old line-preserving view at lines 349–643. From S04 onward, use the cleaned file instead; its memory-interface section begins at line 47. Split into sub-sessions as needed.
 
 This is the first substantial base-RV32I subsystem in source order.
 

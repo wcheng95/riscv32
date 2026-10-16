@@ -52,7 +52,16 @@ WORDS = $(WORDS_$(LAB))
 WAIT ?= 0
 ASFLAGS = -march=rv32i -mabi=ilp32 -mno-relax -nostdlib -nostartfiles -Wl,-T,labs/common/link.ld -Wl,--build-id=none
 
-.PHONY: all test trace wave disasm clean toolchain-check test-all
+# Fixed-RV32I cleanup / own-core regressions.
+STRICT_LABS = lab00 lab01 lab02 lab03 lab04 lab05 lab06
+STRICT_FIRMWARE = $(foreach L,$(STRICT_LABS),build/$(L).hex)
+EQUIV_SIM = build/rv32i_equiv.vvp
+OWN_SIM = build/rv32i_own.vvp
+OWN_FIRMWARE = $(STRICT_FIRMWARE) build/lab08.hex \
+	build/lab09_illegal.hex build/lab09_misalign.hex \
+	build/lab13_0.hex build/lab13_s.hex
+
+.PHONY: all test trace wave disasm clean toolchain-check test-all test-clean-equiv test-own-rv32i
 all: test
 
 build:
@@ -145,6 +154,43 @@ test-all:
 	$(MAKE) test LAB=lab11
 	$(MAKE) test LAB=lab13 OPT=0
 	$(MAKE) test LAB=lab13 OPT=s
+
+
+$(EQUIV_SIM): $(STRICT_FIRMWARE) tbench/rv32i_equiv_tb.v tbench/ram.v \
+		docs/rtl/picorv32-rv32i-clean.v picorv32/picorv32.v | build
+	$(IVERILOG) -g2012 -s rv32i_equiv_tb -o $@ \
+		tbench/rv32i_equiv_tb.v tbench/ram.v \
+		docs/rtl/picorv32-rv32i-clean.v picorv32/picorv32.v
+
+test-clean-equiv: $(EQUIV_SIM)
+	$(VVP) $(EQUIV_SIM) +lab=0 +hex=build/lab00.hex +words=$(WORDS_lab00) +wait=0
+	$(VVP) $(EQUIV_SIM) +lab=1 +hex=build/lab01.hex +words=$(WORDS_lab01) +wait=0
+	$(VVP) $(EQUIV_SIM) +lab=2 +hex=build/lab02.hex +words=$(WORDS_lab02) +wait=0
+	$(VVP) $(EQUIV_SIM) +lab=3 +hex=build/lab03.hex +words=$(WORDS_lab03) +wait=0
+	$(VVP) $(EQUIV_SIM) +lab=4 +hex=build/lab04.hex +words=$(WORDS_lab04) +wait=0
+	$(VVP) $(EQUIV_SIM) +lab=5 +hex=build/lab05.hex +words=$(WORDS_lab05) +wait=0
+	$(VVP) $(EQUIV_SIM) +lab=6 +hex=build/lab06.hex +words=$(WORDS_lab06) +wait=0
+	$(VVP) $(EQUIV_SIM) +lab=6 +hex=build/lab06.hex +words=$(WORDS_lab06) +wait=3
+
+
+$(OWN_SIM): $(OWN_FIRMWARE) tbench/rv32i_own_tb.v tbench/ram.v rtl/rv32_core.v | build
+	$(IVERILOG) -g2012 -s rv32i_own_tb -o $@ \
+		tbench/rv32i_own_tb.v tbench/ram.v rtl/rv32_core.v
+
+test-own-rv32i: $(OWN_SIM)
+	$(VVP) $(OWN_SIM) +lab=0 +hex=build/lab00.hex +words=$(WORDS_lab00) +wait=0
+	$(VVP) $(OWN_SIM) +lab=1 +hex=build/lab01.hex +words=$(WORDS_lab01) +wait=0
+	$(VVP) $(OWN_SIM) +lab=2 +hex=build/lab02.hex +words=$(WORDS_lab02) +wait=0
+	$(VVP) $(OWN_SIM) +lab=3 +hex=build/lab03.hex +words=$(WORDS_lab03) +wait=0
+	$(VVP) $(OWN_SIM) +lab=4 +hex=build/lab04.hex +words=$(WORDS_lab04) +wait=0
+	$(VVP) $(OWN_SIM) +lab=5 +hex=build/lab05.hex +words=$(WORDS_lab05) +wait=0
+	$(VVP) $(OWN_SIM) +lab=6 +hex=build/lab06.hex +words=$(WORDS_lab06) +wait=0
+	$(VVP) $(OWN_SIM) +lab=6 +hex=build/lab06.hex +words=$(WORDS_lab06) +wait=3
+	$(VVP) $(OWN_SIM) +lab=8 +hex=build/lab08.hex +words=$(WORDS_lab08) +wait=0
+	$(VVP) $(OWN_SIM) +lab=9 +hex=build/lab09_illegal.hex +words=2 +wait=0
+	$(VVP) $(OWN_SIM) +lab=9 +hex=build/lab09_misalign.hex +words=3 +wait=0
+	$(VVP) $(OWN_SIM) +lab=13 +hex=build/lab13_0.hex +words=`awk 'END {print NR}' build/lab13_0.hex` +wait=0
+	$(VVP) $(OWN_SIM) +lab=13 +hex=build/lab13_s.hex +words=`awk 'END {print NR}' build/lab13_s.hex` +wait=0
 
 wave: $(SIM)
 	$(VVP) $(SIM) $(RUN_ARGS) +trace +vcd
