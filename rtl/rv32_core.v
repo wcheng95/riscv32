@@ -66,27 +66,31 @@ module rv32_core #(
     wire [31:0] imm_j = {{11{insn[31]}}, insn[31], insn[19:12],
                          insn[20], insn[30:21], 1'b0};
 
-    reg [31:0] eff_addr;
-    reg [31:0] target;
+    wire [31:0] load_addr     = rs1_value + imm_i;
+    wire [31:0] store_addr    = rs1_value + imm_s;
+    wire [31:0] jal_target    = pc + imm_j;
+    wire [31:0] jalr_target   = (rs1_value + imm_i) & 32'hffff_fffe;
+    wire [31:0] branch_target = pc + imm_b;
+
     reg        take_branch;
     reg        valid_branch;
     reg        valid_load;
     reg        valid_store;
     reg        valid_op_imm;
     reg        valid_op;
-    reg [31:0] result;
+    reg [31:0] result_imm;
+    reg [31:0] result_op;
 
     // Combinational helpers used by the execute state.
     always @* begin
-        eff_addr = rs1_value + imm_i;
-        target = 32'b0;
         take_branch = 0;
         valid_branch = 1;
         valid_load = 1;
         valid_store = 1;
         valid_op_imm = 1;
         valid_op = 1;
-        result = 32'b0;
+        result_imm = 32'b0;
+        result_op = 32'b0;
 
         case (funct3)
             3'b000: take_branch = rs1_value == rs2_value;                  // BEQ
@@ -111,23 +115,23 @@ module rv32_core #(
         endcase
 
         case (funct3)
-            3'b000: result = rs1_value + imm_i; // ADDI
-            3'b010: result = $signed(rs1_value) < $signed(imm_i); // SLTI
-            3'b011: result = rs1_value < imm_i; // SLTIU
-            3'b100: result = rs1_value ^ imm_i; // XORI
-            3'b110: result = rs1_value | imm_i; // ORI
-            3'b111: result = rs1_value & imm_i; // ANDI
+            3'b000: result_imm = rs1_value + imm_i; // ADDI
+            3'b010: result_imm = $signed(rs1_value) < $signed(imm_i); // SLTI
+            3'b011: result_imm = rs1_value < imm_i; // SLTIU
+            3'b100: result_imm = rs1_value ^ imm_i; // XORI
+            3'b110: result_imm = rs1_value | imm_i; // ORI
+            3'b111: result_imm = rs1_value & imm_i; // ANDI
             3'b001: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value << insn[24:20];
+                    result_imm = rs1_value << insn[24:20];
                 else
                     valid_op_imm = 0;
             end
             3'b101: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value >> insn[24:20];
+                    result_imm = rs1_value >> insn[24:20];
                 else if (funct7 == 7'b0100000)
-                    result = $signed(rs1_value) >>> insn[24:20];
+                    result_imm = $signed(rs1_value) >>> insn[24:20];
                 else
                     valid_op_imm = 0;
             end
@@ -137,53 +141,53 @@ module rv32_core #(
         case (funct3)
             3'b000: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value + rs2_value;
+                    result_op = rs1_value + rs2_value;
                 else if (funct7 == 7'b0100000)
-                    result = rs1_value - rs2_value;
+                    result_op = rs1_value - rs2_value;
                 else
                     valid_op = 0;
             end
             3'b001: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value << rs2_value[4:0];
+                    result_op = rs1_value << rs2_value[4:0];
                 else
                     valid_op = 0;
             end
             3'b010: begin
                 if (funct7 == 7'b0000000)
-                    result = $signed(rs1_value) < $signed(rs2_value);
+                    result_op = $signed(rs1_value) < $signed(rs2_value);
                 else
                     valid_op = 0;
             end
             3'b011: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value < rs2_value;
+                    result_op = rs1_value < rs2_value;
                 else
                     valid_op = 0;
             end
             3'b100: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value ^ rs2_value;
+                    result_op = rs1_value ^ rs2_value;
                 else
                     valid_op = 0;
             end
             3'b101: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value >> rs2_value[4:0];
+                    result_op = rs1_value >> rs2_value[4:0];
                 else if (funct7 == 7'b0100000)
-                    result = $signed(rs1_value) >>> rs2_value[4:0];
+                    result_op = $signed(rs1_value) >>> rs2_value[4:0];
                 else
                     valid_op = 0;
             end
             3'b110: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value | rs2_value;
+                    result_op = rs1_value | rs2_value;
                 else
                     valid_op = 0;
             end
             3'b111: begin
                 if (funct7 == 7'b0000000)
-                    result = rs1_value & rs2_value;
+                    result_op = rs1_value & rs2_value;
                 else
                     valid_op = 0;
             end
@@ -279,13 +283,12 @@ module rv32_core #(
                         end
 
                         7'b1101111: begin // JAL
-                            target = pc + imm_j;
-                            if (CATCH_MISALIGN && |target[1:0]) begin
+                            if (CATCH_MISALIGN && |jal_target[1:0]) begin
                                 trap <= 1;
                                 state <= ST_TRAP;
                             end else begin
                                 if (rd != 0) regs[rd] <= pc + 4;
-                                pc <= target;
+                                pc <= jal_target;
                                 state <= ST_FETCH;
                             end
                         end
@@ -297,13 +300,12 @@ module rv32_core #(
                                     state <= ST_TRAP;
                                 end
                             end else begin
-                                target = (rs1_value + imm_i) & 32'hffff_fffe;
-                                if (CATCH_MISALIGN && |target[1:0]) begin
+                                if (CATCH_MISALIGN && |jalr_target[1:0]) begin
                                     trap <= 1;
                                     state <= ST_TRAP;
                                 end else begin
                                     if (rd != 0) regs[rd] <= pc + 4;
-                                    pc <= target;
+                                    pc <= jalr_target;
                                     state <= ST_FETCH;
                                 end
                             end
@@ -316,12 +318,11 @@ module rv32_core #(
                                     state <= ST_TRAP;
                                 end
                             end else if (take_branch) begin
-                                target = pc + imm_b;
-                                if (CATCH_MISALIGN && |target[1:0]) begin
+                                if (CATCH_MISALIGN && |branch_target[1:0]) begin
                                     trap <= 1;
                                     state <= ST_TRAP;
                                 end else begin
-                                    pc <= target;
+                                    pc <= branch_target;
                                     state <= ST_FETCH;
                                 end
                             end else begin
@@ -331,25 +332,24 @@ module rv32_core #(
                         end
 
                         7'b0000011: begin // loads
-                            eff_addr = rs1_value + imm_i;
                             if (!valid_load) begin
                                 if (CATCH_ILLINSN) begin
                                     trap <= 1;
                                     state <= ST_TRAP;
                                 end
                             end else if (CATCH_MISALIGN &&
-                                ((funct3 == 3'b010 && |eff_addr[1:0]) ||
-                                 ((funct3 == 3'b001 || funct3 == 3'b101) && eff_addr[0]))) begin
+                                ((funct3 == 3'b010 && |load_addr[1:0]) ||
+                                 ((funct3 == 3'b001 || funct3 == 3'b101) && load_addr[0]))) begin
                                 trap <= 1;
                                 state <= ST_TRAP;
                             end else begin
                                 mem_valid <= 1;
                                 mem_instr <= 0;
-                                mem_addr <= {eff_addr[31:2], 2'b00};
+                                mem_addr <= {load_addr[31:2], 2'b00};
                                 mem_wstrb <= 0;
                                 mem_is_load <= 1;
                                 mem_rd <= rd;
-                                mem_addr_low <= eff_addr[1:0];
+                                mem_addr_low <= load_addr[1:0];
 
                                 case (funct3)
                                     3'b000: begin mem_size <= 0; mem_unsigned <= 0; end
@@ -364,28 +364,27 @@ module rv32_core #(
                         end
 
                         7'b0100011: begin // stores
-                            eff_addr = rs1_value + imm_s;
                             if (!valid_store) begin
                                 if (CATCH_ILLINSN) begin
                                     trap <= 1;
                                     state <= ST_TRAP;
                                 end
                             end else if (CATCH_MISALIGN &&
-                                ((funct3 == 3'b010 && |eff_addr[1:0]) ||
-                                 (funct3 == 3'b001 && eff_addr[0]))) begin
+                                ((funct3 == 3'b010 && |store_addr[1:0]) ||
+                                 (funct3 == 3'b001 && store_addr[0]))) begin
                                 trap <= 1;
                                 state <= ST_TRAP;
                             end else begin
                                 mem_valid <= 1;
                                 mem_instr <= 0;
-                                mem_addr <= {eff_addr[31:2], 2'b00};
+                                mem_addr <= {store_addr[31:2], 2'b00};
                                 mem_is_load <= 0;
-                                mem_addr_low <= eff_addr[1:0];
+                                mem_addr_low <= store_addr[1:0];
 
                                 case (funct3)
                                     3'b000: begin
                                         mem_wdata <= {4{rs2_value[7:0]}};
-                                        mem_wstrb <= 4'b0001 << eff_addr[1:0];
+                                        mem_wstrb <= 4'b0001 << store_addr[1:0];
                                     end
                                     3'b001: begin
                                         mem_wdata <= {2{rs2_value[15:0]}};
@@ -408,7 +407,7 @@ module rv32_core #(
                                     state <= ST_TRAP;
                                 end
                             end else begin
-                                if (rd != 0) regs[rd] <= result;
+                                if (rd != 0) regs[rd] <= result_imm;
                                 pc <= pc + 4;
                                 state <= ST_FETCH;
                             end
@@ -421,7 +420,7 @@ module rv32_core #(
                                     state <= ST_TRAP;
                                 end
                             end else begin
-                                if (rd != 0) regs[rd] <= result;
+                                if (rd != 0) regs[rd] <= result_op;
                                 pc <= pc + 4;
                                 state <= ST_FETCH;
                             end
