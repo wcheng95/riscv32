@@ -110,6 +110,40 @@ What we settled:
 - For a future simple core, a single blocking CPU FSM can own fetch/load/store directly; a separate memory FSM becomes useful only when independent memory progress such as prefetch/overlap is desired.
 - The RV32I instruction checklist now includes binary encodings. Load/store instructions remain `TODO` until their full path from decode through architectural effect has been traced.
 
+### S05 — instruction decoder — DONE
+
+**Clean study RTL:** lines 161–355  
+**Next:** S06, datapath/register access/ALU section
+
+What we settled:
+
+- PicoRV32 has 39 `instr_*` decoder flags representing the 40 base RV32I instructions because `ECALL` and `EBREAK` share one flag: `instr_ecall_ebreak`.
+- Decoder outputs fall into three useful categories:
+  - exact instruction flags such as `instr_add`, `instr_lw`, `instr_beq`
+  - extracted operands/immediates such as `decoded_rd`, `decoded_rs1`, `decoded_rs2`, `decoded_imm`
+  - grouped implementation/control classes such as `is_alu_reg_imm`, `is_sb_sh_sw`, `is_compare`
+- The decoder is staged across clock edges rather than being one large combinational decoder.
+- Stage 1 runs when an instruction read completes:
+  - recognizes opcode-unique instructions such as `LUI`, `AUIPC`, `JAL`
+  - recognizes opcode families such as loads, stores, OP-IMM and OP
+  - extracts `rd`, `rs1`, `rs2`
+  - constructs the J-type immediate
+- Stage 2 runs under `decoder_trigger` and refines opcode families with `funct3` and `funct7` into exact instructions.
+- Instructions whose opcode uniquely identifies them, especially `JAL`, are already fully identified in stage 1. The common stage-2 block still executes, but those instructions do not depend on a stage-2 result before the CPU control logic can act.
+- RISC-V keeps `rd`, `rs1`, and `rs2` in fixed bit positions across the relevant instruction formats, which simplifies register-field extraction.
+- Immediate reconstruction is format-specific:
+  - I-type: sign-extend `insn[31:20]`
+  - S-type: combine `insn[31:25]` and `insn[11:7]`
+  - B-type: reorder the split branch immediate and append bit 0 = 0
+  - U-type: `insn[31:12] << 12`
+  - J-type: reorder JAL immediate bits and append bit 0 = 0
+- For a future from-scratch Mini5 decoder, prefer explicit format signals such as `imm_i`, `imm_s`, `imm_b`, `imm_u`, and `imm_j` instead of overloading one general immediate signal.
+- Prefer explicit sign extension such as `{{20{insn[31]}}, insn[31:20]}` for ISA field construction; reserve `$signed` mainly for operations whose semantics are genuinely signed, such as signed compares.
+- `instr_trap` means no recognized legal instruction flag is active. `ECALL`/`EBREAK` intentionally remain outside the normal legal-instruction list because this stripped PicoRV32 configuration treats them as trap-generating operations.
+- `FENCE` is decoded as a legal instruction but has no dedicated execution action in this core. With one outstanding blocking memory transaction and no cache/store buffer/reordering machinery, normal accesses are already serialized, so `FENCE` is effectively a legal NOP.
+- `FENCE.I` is not part of base RV32I; it belongs to the separate Zifencei extension and remains outside the current scope.
+- The `is_*` grouped signals exist to serve the chosen PicoRV32 datapath/FSM structure. A future Mini5 decoder may group instructions differently depending on its control architecture.
+
 ## Block diagram
 
 ![PicoRV32 RV32I block diagram](picorv32_diagram.png)
@@ -453,25 +487,30 @@ Documented:
 
 Implementation result: enough detail to independently build a blocking fetch/load/store interface, while recognizing where PicoRV32 adds prefetch overlap.
 
-### 4. Instruction decoder — NEXT (S05)
+### 4. Instruction decoder — DONE (S05)
 
-Document in the exact order the RTL introduces and computes decode state:
+S05 uses the cleaned fixed-RV32I file, lines 161–355.
 
-- individual `instr_*` flags
-- grouped `is_*` flags
-- `decoded_rd`, `decoded_rs1`, `decoded_rs2`
-- immediate generation
-- decode trigger/latching behavior
+Documented:
+
+- exact `instr_*` flags versus grouped `is_*` control classes
+- 39 decoder flags representing 40 RV32I instructions because ECALL/EBREAK share a flag
+- staged opcode-family and funct3/funct7 decode
+- fixed register-field positions
+- I/S/B/U/J immediate reconstruction
 - illegal-instruction detection
-- instruction families sharing datapath/control logic
+- opcode-unique instructions that logically complete decode in stage 1
+- `FENCE` as a legal NOP in this simple serialized memory architecture
+- `FENCE.I` exclusion from base RV32I
+- decoder-style preferences for a future from-scratch Mini5 implementation
 
-Implementation result: a decoder specification that maps a 32-bit RV32I instruction to operands, immediate, destination and control class.
+Implementation result: enough detail to build an independent RV32I decoder with explicit format immediates and control classes chosen for our own datapath rather than copied mechanically from PicoRV32.
 
-### 5. Debug/decode bookkeeping — TODO / mostly nonessential
+### 5. Debug/decode bookkeeping — SKIPPED / nonessential in cleaned RTL
 
 Separate implementation-essential decode state from source-only debug/trace helpers. Our own core should not inherit machinery merely because it appears in the reference source.
 
-### 6. Datapath helpers, register access and ALU — TODO
+### 6. Datapath helpers, register access and ALU — NEXT (S06)
 
 Document:
 
