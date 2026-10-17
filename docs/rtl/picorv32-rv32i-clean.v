@@ -42,7 +42,7 @@ module picorv32_rv32i_clean #(
     reg [4:0]  reg_sh;
     reg [31:0] next_insn_opcode;
     reg [31:0] cpuregs [0:31];
-
+    wire [31:0] next_pc;
     // ------------------------------------------------------------------------
     // Memory interface
     // ------------------------------------------------------------------------
@@ -373,7 +373,7 @@ module picorv32_rv32i_clean #(
     reg [4:0] latched_rd;
 
     reg [31:0] current_pc;
-    wire [31:0] next_pc = latched_store && latched_branch
+    assign next_pc = latched_store && latched_branch
                         ? reg_out & ~1
                         : reg_next_pc;
 
