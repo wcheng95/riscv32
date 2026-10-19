@@ -43,4 +43,4 @@ The default build uses only Icarus; do not start a custom toolchain build unless
 
 ## Validation state
 
-The files are provided for local macOS validation. The original hardcoded Lab00 passed on the Mac mini (27 cycles). The revised assembly-based Lab00 and Lab01 require rerunning `make test-all` on the Mac mini.
+The planned PicoRV32 lab sequence was completed and the repository reached its final study state. For an archival smoke test, run `make clean && make test-all`; CI also runs the full lab suite plus the cleaned-core equivalence regression before archive.
