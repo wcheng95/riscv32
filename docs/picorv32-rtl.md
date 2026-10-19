@@ -13,7 +13,7 @@ The configured study core is **RV32I**: compressed instructions, multiply/divide
 - [Clean fixed-RV32I PicoRV32](rtl/picorv32-rv32i-clean.v) — **primary walkthrough file from S04 onward**
 - [Line-preserving RV32I study RTL](rtl/picorv32-rv32i-study.v) — audit/reference snapshot
 - [RTL view/validation notes](rtl/README.md)
-- [Independent RV32I core](../rtl/rv32_core.v) — future own-core baseline; defer detailed study until PicoRV32 is understood
+- Independent RV32I seed core moved to separate repository: `wcheng95/mini5` (`rtl/rv32_core.v`)
 
 The line-preserving view was useful for S01–S03 because source line numbers matched upstream exactly. Starting with the memory-interface study, use the cleaned fixed-RV32I core so disabled C/M/PCPI/IRQ/counter/trace paths no longer consume attention.
 
@@ -423,7 +423,7 @@ RTL simulation
 FPGA
 ```
 
-The closer the firmware environment stays across those three targets, the less custom infrastructure we need to maintain.
+The closer the firmware environment stays across those three targets, the less custom infrastructure we need to maintain. Future own-core work now belongs in the separate `mini5` repository.
 
 ### FPGA target
 
