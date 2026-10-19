@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - codex/rv32i-clean-core
   pull_request:
     branches:
       - main
@@ -20,6 +19,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y iverilog gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
 
-      - name: Phase A fixed-RV32I equivalence
+      - name: Full PicoRV32 lab regression
+        run: |
+          make test-all RISCV_PREFIX=riscv64-unknown-elf-
+
+      - name: Cleaned-core equivalence regression
         run: |
           make test-clean-equiv RISCV_PREFIX=riscv64-unknown-elf-
