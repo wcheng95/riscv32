@@ -1,24 +1,23 @@
 # PicoRV32 RV32I study RTL
 
-There are now three deliberately different RTL views:
+There are two PicoRV32 study RTL views in this repository:
 
 ```text
 picorv32/picorv32.v
         ↓
 docs/rtl/picorv32-rv32i-study.v    line-preserving audit/reference
         ↓
-docs/rtl/picorv32-rv32i-clean.v    Phase A: cleaned fixed-RV32I PicoRV32
-        ↓
-rtl/rv32_core.v                     Phase B: independent own core
+docs/rtl/picorv32-rv32i-clean.v    cleaned fixed-RV32I PicoRV32
 ```
+
+The independent RV32I seed core that was developed here during the study has
+moved to the separate **wcheng95/mini5** repository as `rtl/rv32_core.v`.
 
 ## Which file to study
 
 Use **`picorv32-rv32i-clean.v` as the primary PicoRV32 study file from S04 onward**.
 
 The line-preserving `picorv32-rv32i-study.v` remains available only as an audit/reference snapshot. It preserves the upstream line numbering but intentionally contains dead fixed-parameter expressions.
-
-Do **not** switch the current PicoRV32 walkthrough to `rtl/rv32_core.v`. That file is the future independent core and should stay secondary until the PicoRV32 walkthrough is complete.
 
 ## Phase A validation
 
@@ -39,35 +38,12 @@ Validated in CI:
 
 Result: **PASS**.
 
-## Phase B validation
+## Independent-core validation history
 
-`../../rtl/rv32_core.v` is an independent, simpler RV32I implementation:
-
-- one instruction in flight
-- no instruction prefetch/look-ahead path
-- simple fetch / execute / memory / trap FSM
-- same 32-bit `mem_valid/mem_ready` native bus
-- no C, M, PCPI, IRQ, counters or trace
-
-Validation target:
-
-```sh
-make test-own-rv32i RISCV_PREFIX=riscv64-unknown-elf-
-```
-
-Validated in CI:
-
-- Labs 00–06
-- Lab06 with 3 memory wait states
-- Lab08 register/ALU sequence
-- Lab09 illegal-instruction trap
-- Lab09 misalignment trap
-- Lab13 C ABI at `-O0`
-- Lab13 C ABI at `-Os`
-
-Result: **PASS**.
-
-The independent core is intentionally not cycle-equivalent to PicoRV32; only architectural behavior is expected to match.
+Before moving to the separate `mini5` repository, the independent RV32I seed
+core was validated here against Labs 00–06, wait-state Lab06, Lab08, both Lab09
+trap cases, and Lab13 C ABI at `-O0` and `-Os`. That validation remains part
+of this repository's history; future Mini5 work belongs in `wcheng95/mini5`.
 
 ## Fixed study configuration
 
@@ -136,12 +112,8 @@ PicoRV32 is licensed under the ISC License. The upstream license permits use,
 copying, modification, and distribution, including for commercial purposes,
 provided that the original copyright notice and permission notice are retained.
 
-Because both `picorv32-rv32i-clean.v` and `../../rtl/rv32_core.v` were developed
-from PicoRV32 source/structure, this repository conservatively treats them as
-PicoRV32-derived works and carries the full ISC notice in each source file.
-
+The cleaned `picorv32-rv32i-clean.v` derivative carries the full ISC notice.
 The pinned upstream license is also retained at `../../picorv32/COPYING`.
 
-Future extensions to `rv32_core.v` (for example Zicsr, Machine-mode traps,
-timers, and accelerators) may be original work, but keeping the ISC notice on
-the evolving file preserves compliance for the PicoRV32-derived portions.
+The former independent `rv32_core.v` derivative has moved to `wcheng95/mini5`;
+its ISC notice moves with the source file.
