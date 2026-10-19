@@ -184,6 +184,51 @@ What we settled:
 - Typical `alu_out_q` writeback users are ordinary ALU instructions.
 - `launch_next_insn = (cpu_state == CPU_FETCH && decoder_trigger)` means a decoded instruction is being accepted/launched at the instruction boundary; it does not mean the external memory bus is currently fetching. In the cleaned RTL this signal is unused and can be ignored.
 
+### S07 — main CPU control state machine — DONE
+
+**Clean study RTL:** lines 443–689  
+**Status:** PicoRV32 RV32I walkthrough complete
+
+What we settled:
+
+- The main CPU FSM contains seven active states in the cleaned dual-port RV32I configuration:
+  - `CPU_TRAP`
+  - `CPU_FETCH`
+  - `CPU_RS1`
+  - `CPU_EXEC`
+  - `CPU_SHIFT`
+  - `CPU_STORE`
+  - `CPU_LOAD`
+- Normal ALU instructions typically follow `FETCH → RS1 → EXEC → FETCH`; the exact instruction latency is variable because JAL has a fast path, shifts are iterative, and memory operations wait for `mem_done`.
+- `CPU_FETCH` is more than a fetch state: it is also the instruction-boundary/writeback point for the previous instruction, selects the current/next PC, launches a decoded instruction, and handles the JAL fast path.
+- `reg_pc` is the PC of the current instruction; `reg_next_pc` carries the future fetch address. They can receive the same default value in FETCH and then diverge when the later nonblocking assignment updates `reg_next_pc` to `PC+4` or a jump target.
+- PicoRV32 uses procedural priority heavily: later nonblocking assignments to the same register override earlier scheduled assignments in the same clocked block. This is legal but not the preferred Mini5 coding style.
+- Mini5 style preference:
+  - combinational next-value/data-path logic with `assign` or `always @*`
+  - clocked architectural state with nonblocking `<=`
+  - keep FSM code focused primarily on state progression
+  - avoid implicit Boolean tests on buses when an explicit comparison is clearer
+- `CPU_RS1` is effectively an operand-preparation/dispatch state. Every base-RV32I instruction except the JAL fast path enters it and is dispatched to TRAP, EXEC, SHIFT, STORE, or LOAD.
+- The current PicoRV32 style repeats `CPU_EXEC` transitions in several instruction-family branches because operand preparation is kept local to each family. Mini5 may instead separate operand/control generation from next-state selection.
+- `CPU_EXEC` is one cycle for ordinary ALU-style instructions. Branches may remain in EXEC while PicoRV32 settles or redirects the outstanding sequential instruction prefetch.
+- `CPU_SHIFT` implements an iterative shifter. With `TWO_STAGE_SHIFT=1`, it shifts by four bits while at least four remain, otherwise by one bit. A 31-bit shift takes 10 shift clocks plus one final zero-detect/exit clock in `CPU_SHIFT`.
+- `CPU_STORE` is dedicated to `SB`, `SH`, and `SW`.
+- `CPU_LOAD` is dedicated to `LB`, `LH`, `LW`, `LBU`, and `LHU`; loaded data is placed in `reg_out`, then written to `rd` from the FETCH-state writeback path.
+- Register-file writeback occurs at lines 437–439:
+  - `cpuregs[latched_rd] <= cpuregs_wrdata`
+  - writeback to x0 is suppressed by the `latched_rd` condition
+- PicoRV32's `mem_do_prefetch <= !instr_jalr` does not accidentally include JAL: JAL is handled by the surrounding `if (instr_jal) ... else ...` structure and never executes that assignment.
+- Trap sources in the cleaned core are:
+  - illegal/unsupported instruction, including terminal handling of ECALL/EBREAK
+  - misaligned data access
+  - misaligned instruction fetch
+  - invalid CPU FSM state as a defensive internal fallback
+- All architectural trap causes collapse into terminal `CPU_TRAP` behavior in this stripped core; reset is required to resume execution.
+- The tail logic clears completed memory-request flags, then may reassert a new request through `set_mem_do_rinst/rdata/wdata` on the same clock edge.
+- A checkpoint quiz covering memory handshake, byte lanes, JAL fast path, iterative-shift timing, writeback, branch/prefetch behavior, decoder coverage, dispatch, and blocking/nonblocking semantics was completed **10/10**.
+
+Implementation result: the cleaned PicoRV32 RV32I core is understood well enough to serve as a reference for a future from-scratch Mini5 implementation rather than as code that must be copied.
+
 ## Block diagram
 
 ![PicoRV32 RV32I block diagram](picorv32_diagram.png)
@@ -191,6 +236,8 @@ What we settled:
 The diagram is derived from the RTL and shows the current RV32I study configuration. It is a living architectural view: as the source-order walkthrough exposes more precise boundaries or control relationships, update the SVG rather than treating it as an upstream specification.
 
 ## Goal: reconstruct an implementable RV32I core
+
+**Walkthrough status: COMPLETE.** The cleaned RV32I PicoRV32 has been traced from interface through memory, decode, datapath, writeback, CPU FSM, and traps. All 40 base-RV32I checklist entries are now marked `CHECKED`.
 
 Read `picorv32.v` **in RTL source order** and turn it into a compact implementation specification.
 
@@ -428,46 +475,46 @@ Status:
 
 | # | Instruction | Class | Binary encoding (31 → 0) | Architectural effect | RTL status | RTL notes |
 |---:|---|---|---|---|---|---|
-| 1 | `LUI rd, imm` | U | `imm[31:12] rd 0110111` | `rd = imm << 12` | TODO | |
-| 2 | `AUIPC rd, imm` | U | `imm[31:12] rd 0010111` | `rd = pc + (imm << 12)` | TODO | |
-| 3 | `JAL rd, off` | J | `imm[20] imm[10:1] imm[11] imm[19:12] rd 1101111` | `rd = pc+4; pc += off` | TODO | |
-| 4 | `JALR rd, rs1, imm` | I | `imm[11:0] rs1 000 rd 1100111` | `rd = pc+4; pc = (rs1+imm) & ~1` | TODO | |
-| 5 | `BEQ rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 000 imm[4:1] imm[11] 1100011` | branch if `rs1 == rs2` | TODO | |
-| 6 | `BNE rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 001 imm[4:1] imm[11] 1100011` | branch if `rs1 != rs2` | TODO | |
-| 7 | `BLT rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 100 imm[4:1] imm[11] 1100011` | signed `rs1 < rs2` | TODO | |
-| 8 | `BGE rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 101 imm[4:1] imm[11] 1100011` | signed `rs1 >= rs2` | TODO | |
-| 9 | `BLTU rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 110 imm[4:1] imm[11] 1100011` | unsigned `rs1 < rs2` | TODO | |
-| 10 | `BGEU rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 111 imm[4:1] imm[11] 1100011` | unsigned `rs1 >= rs2` | TODO | |
-| 11 | `LB rd, imm(rs1)` | I/load | `imm[11:0] rs1 000 rd 0000011` | load byte, sign-extend | TODO | |
-| 12 | `LH rd, imm(rs1)` | I/load | `imm[11:0] rs1 001 rd 0000011` | load halfword, sign-extend | TODO | |
-| 13 | `LW rd, imm(rs1)` | I/load | `imm[11:0] rs1 010 rd 0000011` | load word | TODO | |
-| 14 | `LBU rd, imm(rs1)` | I/load | `imm[11:0] rs1 100 rd 0000011` | load byte, zero-extend | TODO | |
-| 15 | `LHU rd, imm(rs1)` | I/load | `imm[11:0] rs1 101 rd 0000011` | load halfword, zero-extend | TODO | |
-| 16 | `SB rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 000 imm[4:0] 0100011` | store low byte | TODO | |
-| 17 | `SH rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 001 imm[4:0] 0100011` | store low halfword | TODO | |
-| 18 | `SW rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 010 imm[4:0] 0100011` | store word | TODO | |
-| 19 | `ADDI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 000 rd 0010011` | `rd = rs1 + imm` | TODO | |
-| 20 | `SLTI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 010 rd 0010011` | signed less-than immediate | TODO | |
-| 21 | `SLTIU rd, rs1, imm` | I/ALU | `imm[11:0] rs1 011 rd 0010011` | unsigned less-than immediate | TODO | |
-| 22 | `XORI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 100 rd 0010011` | bitwise XOR immediate | TODO | |
-| 23 | `ORI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 110 rd 0010011` | bitwise OR immediate | TODO | |
-| 24 | `ANDI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 111 rd 0010011` | bitwise AND immediate | TODO | |
-| 25 | `SLLI rd, rs1, shamt` | I/shift | `0000000 shamt rs1 001 rd 0010011` | logical left shift | TODO | |
-| 26 | `SRLI rd, rs1, shamt` | I/shift | `0000000 shamt rs1 101 rd 0010011` | logical right shift | TODO | |
-| 27 | `SRAI rd, rs1, shamt` | I/shift | `0100000 shamt rs1 101 rd 0010011` | arithmetic right shift | TODO | |
-| 28 | `ADD rd, rs1, rs2` | R | `0000000 rs2 rs1 000 rd 0110011` | `rd = rs1 + rs2` | TODO | |
-| 29 | `SUB rd, rs1, rs2` | R | `0100000 rs2 rs1 000 rd 0110011` | `rd = rs1 - rs2` | TODO | |
-| 30 | `SLL rd, rs1, rs2` | R | `0000000 rs2 rs1 001 rd 0110011` | logical left shift | TODO | |
-| 31 | `SLT rd, rs1, rs2` | R | `0000000 rs2 rs1 010 rd 0110011` | signed less-than | TODO | |
-| 32 | `SLTU rd, rs1, rs2` | R | `0000000 rs2 rs1 011 rd 0110011` | unsigned less-than | TODO | |
-| 33 | `XOR rd, rs1, rs2` | R | `0000000 rs2 rs1 100 rd 0110011` | bitwise XOR | TODO | |
-| 34 | `SRL rd, rs1, rs2` | R | `0000000 rs2 rs1 101 rd 0110011` | logical right shift | TODO | |
-| 35 | `SRA rd, rs1, rs2` | R | `0100000 rs2 rs1 101 rd 0110011` | arithmetic right shift | TODO | |
-| 36 | `OR rd, rs1, rs2` | R | `0000000 rs2 rs1 110 rd 0110011` | bitwise OR | TODO | |
-| 37 | `AND rd, rs1, rs2` | R | `0000000 rs2 rs1 111 rd 0110011` | bitwise AND | TODO | |
-| 38 | `FENCE` | memory ordering | `fm pred succ 00000 000 00000 0001111` | order memory/device accesses | TODO | |
-| 39 | `ECALL` | SYSTEM | `000000000000 00000 000 00000 1110011` | environment call | TODO | |
-| 40 | `EBREAK` | SYSTEM | `000000000001 00000 000 00000 1110011` | breakpoint request | TODO | |
+| 1 | `LUI rd, imm` | U | `imm[31:12] rd 0110111` | `rd = imm << 12` | CHECKED | |
+| 2 | `AUIPC rd, imm` | U | `imm[31:12] rd 0010111` | `rd = pc + (imm << 12)` | CHECKED | |
+| 3 | `JAL rd, off` | J | `imm[20] imm[10:1] imm[11] imm[19:12] rd 1101111` | `rd = pc+4; pc += off` | CHECKED | |
+| 4 | `JALR rd, rs1, imm` | I | `imm[11:0] rs1 000 rd 1100111` | `rd = pc+4; pc = (rs1+imm) & ~1` | CHECKED | |
+| 5 | `BEQ rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 000 imm[4:1] imm[11] 1100011` | branch if `rs1 == rs2` | CHECKED | |
+| 6 | `BNE rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 001 imm[4:1] imm[11] 1100011` | branch if `rs1 != rs2` | CHECKED | |
+| 7 | `BLT rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 100 imm[4:1] imm[11] 1100011` | signed `rs1 < rs2` | CHECKED | |
+| 8 | `BGE rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 101 imm[4:1] imm[11] 1100011` | signed `rs1 >= rs2` | CHECKED | |
+| 9 | `BLTU rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 110 imm[4:1] imm[11] 1100011` | unsigned `rs1 < rs2` | CHECKED | |
+| 10 | `BGEU rs1, rs2, off` | B | `imm[12] imm[10:5] rs2 rs1 111 imm[4:1] imm[11] 1100011` | unsigned `rs1 >= rs2` | CHECKED | |
+| 11 | `LB rd, imm(rs1)` | I/load | `imm[11:0] rs1 000 rd 0000011` | load byte, sign-extend | CHECKED | |
+| 12 | `LH rd, imm(rs1)` | I/load | `imm[11:0] rs1 001 rd 0000011` | load halfword, sign-extend | CHECKED | |
+| 13 | `LW rd, imm(rs1)` | I/load | `imm[11:0] rs1 010 rd 0000011` | load word | CHECKED | |
+| 14 | `LBU rd, imm(rs1)` | I/load | `imm[11:0] rs1 100 rd 0000011` | load byte, zero-extend | CHECKED | |
+| 15 | `LHU rd, imm(rs1)` | I/load | `imm[11:0] rs1 101 rd 0000011` | load halfword, zero-extend | CHECKED | |
+| 16 | `SB rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 000 imm[4:0] 0100011` | store low byte | CHECKED | |
+| 17 | `SH rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 001 imm[4:0] 0100011` | store low halfword | CHECKED | |
+| 18 | `SW rs2, imm(rs1)` | S/store | `imm[11:5] rs2 rs1 010 imm[4:0] 0100011` | store word | CHECKED | |
+| 19 | `ADDI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 000 rd 0010011` | `rd = rs1 + imm` | CHECKED | |
+| 20 | `SLTI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 010 rd 0010011` | signed less-than immediate | CHECKED | |
+| 21 | `SLTIU rd, rs1, imm` | I/ALU | `imm[11:0] rs1 011 rd 0010011` | unsigned less-than immediate | CHECKED | |
+| 22 | `XORI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 100 rd 0010011` | bitwise XOR immediate | CHECKED | |
+| 23 | `ORI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 110 rd 0010011` | bitwise OR immediate | CHECKED | |
+| 24 | `ANDI rd, rs1, imm` | I/ALU | `imm[11:0] rs1 111 rd 0010011` | bitwise AND immediate | CHECKED | |
+| 25 | `SLLI rd, rs1, shamt` | I/shift | `0000000 shamt rs1 001 rd 0010011` | logical left shift | CHECKED | |
+| 26 | `SRLI rd, rs1, shamt` | I/shift | `0000000 shamt rs1 101 rd 0010011` | logical right shift | CHECKED | |
+| 27 | `SRAI rd, rs1, shamt` | I/shift | `0100000 shamt rs1 101 rd 0010011` | arithmetic right shift | CHECKED | |
+| 28 | `ADD rd, rs1, rs2` | R | `0000000 rs2 rs1 000 rd 0110011` | `rd = rs1 + rs2` | CHECKED | |
+| 29 | `SUB rd, rs1, rs2` | R | `0100000 rs2 rs1 000 rd 0110011` | `rd = rs1 - rs2` | CHECKED | |
+| 30 | `SLL rd, rs1, rs2` | R | `0000000 rs2 rs1 001 rd 0110011` | logical left shift | CHECKED | |
+| 31 | `SLT rd, rs1, rs2` | R | `0000000 rs2 rs1 010 rd 0110011` | signed less-than | CHECKED | |
+| 32 | `SLTU rd, rs1, rs2` | R | `0000000 rs2 rs1 011 rd 0110011` | unsigned less-than | CHECKED | |
+| 33 | `XOR rd, rs1, rs2` | R | `0000000 rs2 rs1 100 rd 0110011` | bitwise XOR | CHECKED | |
+| 34 | `SRL rd, rs1, rs2` | R | `0000000 rs2 rs1 101 rd 0110011` | logical right shift | CHECKED | |
+| 35 | `SRA rd, rs1, rs2` | R | `0100000 rs2 rs1 101 rd 0110011` | arithmetic right shift | CHECKED | |
+| 36 | `OR rd, rs1, rs2` | R | `0000000 rs2 rs1 110 rd 0110011` | bitwise OR | CHECKED | |
+| 37 | `AND rd, rs1, rs2` | R | `0000000 rs2 rs1 111 rd 0110011` | bitwise AND | CHECKED | |
+| 38 | `FENCE` | memory ordering | `fm pred succ 00000 000 00000 0001111` | order memory/device accesses | CHECKED | |
+| 39 | `ECALL` | SYSTEM | `000000000000 00000 000 00000 1110011` | environment call | CHECKED | |
+| 40 | `EBREAK` | SYSTEM | `000000000001 00000 000 00000 1110011` | breakpoint request | CHECKED | |
 
 ## RTL-order walkthrough
 
@@ -569,42 +616,35 @@ Documented:
 
 Implementation result: enough detail to reconstruct the integer datapath and register writeback path independently, while deferring the exact sequencing to the CPU FSM.
 
-### 7. Main CPU control state machine — NEXT (S07)
+### 7. Main CPU control state machine — DONE (S07)
 
-Document each state in source order, including at least:
+S07 uses the cleaned fixed-RV32I file, lines 443–689.
 
-```text
-FETCH
-LD_RS1
-LD_RS2
-EXEC
-SHIFT
-STMEM
-LDMEM
-TRAP
-```
+Documented:
 
-For every state record:
+- reset/default actions
+- FETCH as instruction boundary, PC selection, writeback point, and JAL fast path
+- RS1 as operand preparation / dispatch
+- EXEC behavior for ALU, JALR, and branches
+- iterative SHIFT timing
+- dedicated STORE and LOAD states
+- branch/prefetch interaction
+- memory-request clear/reassert priority
+- coding-style observations relevant to Mini5
 
-- entry condition
-- state-owned actions
-- memory request started/completed
-- register values latched
-- next state
-- architectural effect, if any
+Implementation result: the complete control flow of the cleaned multi-cycle RV32I core can now be reconstructed independently.
 
-Implementation result: this becomes the central control specification for our own multi-cycle RV32I core.
+### 8. Misalignment, trap and excluded optional tail logic — DONE (S07)
 
-### 8. Misalignment, trap and excluded optional tail logic — TODO
+Documented:
 
-Document only the parts needed for the selected RV32I behavior:
+- misaligned word/halfword data access checks
+- 4-byte instruction alignment with compressed ISA disabled
+- illegal instruction and ECALL/EBREAK terminal trap behavior
+- invalid-state defensive trap
+- reset as the only recovery path from terminal `CPU_TRAP`
 
-- misaligned instruction/data detection
-- illegal instruction behavior
-- `ECALL` / `EBREAK`
-- base trap behavior
-
-Mark IRQ, RVFI and formal-verification machinery as reference/support logic rather than required datapath/control logic.
+The PicoRV32 RV32I source-order walkthrough is complete.
 
 ## Source map
 
