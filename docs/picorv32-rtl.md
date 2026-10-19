@@ -144,6 +144,46 @@ What we settled:
 - `FENCE.I` is not part of base RV32I; it belongs to the separate Zifencei extension and remains outside the current scope.
 - The `is_*` grouped signals exist to serve the chosen PicoRV32 datapath/FSM structure. A future Mini5 decoder may group instructions differently depending on its control architecture.
 
+### S06 — datapath helpers, register access and ALU — DONE
+
+**Clean study RTL:** lines 356–441  
+**Next:** S07, main CPU control FSM, beginning at line 443
+
+What we settled:
+
+- CPU state declarations use one-hot-style encoding. The old single-port second-register-read state is absent in the cleaned dual-port configuration, leaving a hole in the encoding.
+- `latched_store` is a misleading PicoRV32 name in the cleaned core. It behaves more like **writeback/result pending** than a memory-store indicator.
+- `latched_stalu` selects the ALU result path for register writeback; otherwise writeback commonly comes from `reg_out`.
+- `next_pc` normally follows `reg_next_pc`, but a taken branch/JALR path can select `reg_out & ~1`.
+- The ALU shares one add/sub datapath:
+  - `SUB` selects subtraction.
+  - ADD/ADDI and address/PC-relative operations reuse addition.
+- Comparisons are separated into:
+  - equality
+  - signed less-than
+  - unsigned less-than
+- Using `$signed` is appropriate for genuinely signed arithmetic/comparison semantics such as signed less-than, even though explicit concatenation is preferred for ISA-field sign extension.
+- `alu_out_0` is the 1-bit compare/branch result.
+- `alu_out` is the 32-bit architectural ALU result:
+  - add/sub
+  - compare converted to 0/1
+  - XOR
+  - OR
+  - AND
+- Shift instructions are not handled by this ALU block; they use the separate iterative `CPU_SHIFT` state.
+- Register-file reads are combinational dual-port reads:
+  - `decoded_rs1 == 0` forces read value 0
+  - `decoded_rs2 == 0` forces read value 0
+- Register-file writes suppress `rd == 0`, so x0 is protected on both read and write sides.
+- Register writeback occurs while the CPU is back in `CPU_FETCH`, making FETCH both an instruction-boundary state and the previous instruction's writeback/commit point.
+- `cpuregs_wrdata` means **CPU register-file writeback data**, not memory write data. Memory stores use `mem_wdata`.
+- Typical `reg_out` writeback users include:
+  - loads
+  - iterative shifts
+  - optional initial stack-pointer setup
+- Typical `alu_out_q` writeback users are ordinary ALU instructions.
+- `launch_next_insn = (cpu_state == CPU_FETCH && decoder_trigger)` means a decoded instruction is being accepted/launched at the instruction boundary; it does not mean the external memory bus is currently fetching. In the cleaned RTL this signal is unused and can be ignored.
+
 ## Block diagram
 
 ![PicoRV32 RV32I block diagram](picorv32_diagram.png)
@@ -510,21 +550,26 @@ Implementation result: enough detail to build an independent RV32I decoder with 
 
 Separate implementation-essential decode state from source-only debug/trace helpers. Our own core should not inherit machinery merely because it appears in the reference source.
 
-### 6. Datapath helpers, register access and ALU — NEXT (S06)
+### 6. Datapath helpers, register access and ALU — DONE (S06)
 
-Document:
+S06 uses the cleaned fixed-RV32I file, lines 356–441.
 
-- register-file read addresses/data
-- writeback enable/address/data
-- x0 suppression
-- ALU input selection
-- ADD/SUB/logic/compare operations
-- signed versus unsigned compare
-- barrel versus iterative shift behavior, retaining only the configuration we choose
+Documented:
 
-Implementation result: reconstruct the integer datapath independently of the main control FSM.
+- CPU state/control declarations relevant to datapath use
+- ALU add/sub/logic/compare behavior
+- signed versus unsigned comparisons
+- compare-to-0/1 result generation
+- dual-port register-file reads
+- x0 read/write suppression
+- writeback source selection
+- `reg_out` versus `alu_out_q`
+- PicoRV32 naming/style observations relevant to a future Mini5 implementation
+- `launch_next_insn` as an unused cleaned-core helper
 
-### 7. Main CPU control state machine — TODO
+Implementation result: enough detail to reconstruct the integer datapath and register writeback path independently, while deferring the exact sequencing to the CPU FSM.
+
+### 7. Main CPU control state machine — NEXT (S07)
 
 Document each state in source order, including at least:
 
