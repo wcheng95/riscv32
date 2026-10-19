@@ -1,5 +1,9 @@
 # riscv32
 
+## Status
+
+**Study complete / archive-ready.** The planned PicoRV32 labs and the RV32I RTL walkthrough are complete. This repository is now a read-only learning/reference record. Future independent CPU work has moved to the separate `wcheng95/mini5` repository.
+
 A cycle-visible RISC-V RV32 learning environment using the [PicoRV32](https://github.com/YosysHQ/picorv32) CPU. Explore the ISA, CPU interfaces, execution timing and compiler output using small, self-checking RTL simulations. Lab structure and documentation follow [cisc68k](https://github.com/wcheng95/cisc68k), but experiments focus on PicoRV32.
 
 ## Principles
