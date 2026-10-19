@@ -41,4 +41,4 @@ The logger uses the same bus signals that the testbench checks. Instruction fetc
 
 ## Validation
 
-Pending Mac mini validation of the refactored shared testbench using `make clean && make test-all`.
+The shared testbench and trace monitor are part of the completed lab suite. The final archival CI runs `make test-all` to exercise the complete planned lab set.
